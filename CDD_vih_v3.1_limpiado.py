@@ -661,9 +661,10 @@ class AnalizadorCalidadDatos:
 
         # Hojas detalladas por verificación con problemas
         for meta in VERIFICACIONES:
-            if nombre not in self.resultados:
+            nom = meta['n']
+            if nom not in self.resultados:
                 continue
-            res = self.resultados[nombre]
+            res = self.resultados[nom]
             registros = res['registros']
             if registros.empty:
                 continue
