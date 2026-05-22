@@ -555,20 +555,21 @@ class AnalizadorCalidadDatos:
         self.tiempos.clear()
         self._verificaciones_omitidas.clear()
 
-        for idx, (nombre, meta) in enumerate(VERIFICACIONES, 1):
+        for idx, item in enumerate(VERIFICACIONES, 1):
+            nombre = item['n']
             t0 = time.perf_counter()
-            fn = meta['fn']
-            log.info(f"[{idx}/{len(VERIFICACIONES)}] {meta['descripcion']}")
+            fn = _FN_MAP.get(nombre)
+            log.info(f"[{idx}/{len(VERIFICACIONES)}] {item['d']}")
 
             # Verificar campos
-            error = _campos_existen(meta['campos'], self.df)
-            if error:
+            error = _campos_existen(item['c'], self.df)
+            if error or fn is None:
                 self._verificaciones_omitidas.append(nombre)
                 self.resumen.append({
                     'ID': idx, 'Verificación': nombre.replace('_', ' ').title(),
-                    'Categoría': meta['categoria'], 'Prioridad': meta['prioridad'],
+                    'Categoría': item['cat'], 'Prioridad': item['p'],
                     'Registros': 0, 'Problemas': 'N/A', '%': 'N/A',
-                    'Estado': 'OMITIDO', 'Detalle': error,
+                    'Estado': 'OMITIDO', 'Detalle': error or f'No implementada: {nombre}',
                 })
                 continue
 
@@ -581,25 +582,25 @@ class AnalizadorCalidadDatos:
                     cant = len(registros_problema)
                     pct = (cant / self.total_registros) * 100
                     self.resultados[nombre] = {
-                        'id': idx, 'cantidad': cant, 'descripcion': meta['descripcion'],
+                        'id': idx, 'cantidad': cant, 'descripcion': item['d'],
                         'registros': registros_problema, 'revisados': self.total_registros,
                         'porcentaje': pct,
                     }
                     self.resumen.append({
                         'ID': idx, 'Verificación': nombre.replace('_', ' ').title(),
-                        'Categoría': meta['categoria'], 'Prioridad': meta['prioridad'],
+                        'Categoría': item['cat'], 'Prioridad': item['p'],
                         'Registros': self.total_registros, 'Problemas': cant,
                         '%': f"{pct:.2f}%", 'Estado': 'OK',
-                        'Detalle': meta['descripcion'],
+                        'Detalle': item['d'],
                     })
                     log.info(f"  → {cant} problemas ({pct:.2f}%) en {elapsed:.2f}s")
                 else:
                     self.resumen.append({
                         'ID': idx, 'Verificación': nombre.replace('_', ' ').title(),
-                        'Categoría': meta['categoria'], 'Prioridad': meta['prioridad'],
+                        'Categoría': item['cat'], 'Prioridad': item['p'],
                         'Registros': self.total_registros, 'Problemas': 0,
                         '%': '0.00%', 'Estado': 'SIN PROBLEMAS',
-                        'Detalle': meta['descripcion'],
+                        'Detalle': item['d'],
                     })
                     log.info(f"  → 0 problemas en {elapsed:.2f}s")
             except Exception as e:
@@ -607,7 +608,7 @@ class AnalizadorCalidadDatos:
                 log.error(f"Error en {nombre}: {str(e)}")
                 self.resumen.append({
                     'ID': idx, 'Verificación': nombre.replace('_', ' ').title(),
-                    'Categoría': meta['categoria'], 'Prioridad': meta['prioridad'],
+                    'Categoría': item['cat'], 'Prioridad': item['p'],
                     'Registros': self.total_registros, 'Problemas': 'ERROR',
                     '%': 'N/A', 'Estado': 'ERROR', 'Detalle': str(e),
                 })
