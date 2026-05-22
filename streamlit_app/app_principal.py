@@ -8,7 +8,11 @@ import streamlit as st
 import sys, os
 from datetime import datetime
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
+# En Streamlit Cloud, __file__ esta en /mount/src/.../streamlit_app/
+# Agregamos streamlit_app/ al path para que encuentre config/ y components/
+_APP_DIR = os.path.dirname(os.path.abspath(__file__))
+if _APP_DIR not in sys.path:
+    sys.path.insert(0, _APP_DIR)
 
 from config.colores import AZUL_PRINCIPAL, AZUL_SECUNDARIO, VERSION
 from components.css_sihce import CSS_GLOBAL

@@ -12,14 +12,9 @@ from pathlib import Path
 import streamlit as st
 import pandas as pd
 
-# Ruta al CDD
-CDD_PATH = Path('/opt/whatsapp-helpdesk-bot/CDD_vih_v3.1_limpiado.py')
-sys.path.insert(0, str(CDD_PATH.parent))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-import importlib.util
-spec = importlib.util.spec_from_file_location('cdd_vih', CDD_PATH)
-cdd = importlib.util.module_from_spec(spec)
-spec.loader.exec_module(cdd)
+from cdd_vih_v3 import AnalizadorCalidadDatos
 
 st.set_page_config(
     page_title='Calidad del Dato VIH-TAR',
@@ -27,7 +22,6 @@ st.set_page_config(
     layout='wide',
 )
 
-# CSS SIHCE
 st.markdown("""
 <style>
     .main-header { background: linear-gradient(135deg, #1B3A5C, #2A5F8F); padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; }
@@ -45,33 +39,30 @@ archivo = st.file_uploader(
 
 if archivo:
     with st.spinner('Ejecutando CDD VIH-TAR...'):
-        # Guardar a temporal
         sufijo = '.xlsx' if archivo.name.endswith('.xlsx') else '.xls'
         with tempfile.NamedTemporaryFile(suffix=sufijo, delete=False) as tmp:
             tmp.write(archivo.getvalue())
             ruta_tmp = tmp.name
 
         try:
-            analizador = cdd.AnalizadorCalidadDatos()
+            analizador = AnalizadorCalidadDatos()
             analizador.cargar_datos(ruta_tmp)
             analizador.analizar()
             ruta_reporte = analizador.generar_reporte()
 
-            # Cargar resumen como DF
             df_resumen = pd.DataFrame(analizador.resumen)
 
-            # Tabla resumen
             st.subheader('📋 Resumen de verificaciones')
 
             col_config = {
-                'Verificación': st.column_config.TextColumn('Verificación'),
-                'Descripción': st.column_config.TextColumn('Descripción'),
+                'Verificacion': st.column_config.TextColumn('Verificación'),
+                'Descripcion': st.column_config.TextColumn('Descripción'),
                 'Problemas': st.column_config.NumberColumn('Problemas'),
                 'Prioridad': st.column_config.TextColumn('Prioridad'),
-                'Categoría': st.column_config.TextColumn('Categoría'),
+                'Categoria': st.column_config.TextColumn('Categoría'),
             }
 
-            cols_show = [c for c in ['Verificación', 'Descripción', 'Problemas', 'Prioridad', 'Categoría'] if c in df_resumen.columns]
+            cols_show = [c for c in ['Verificacion', 'Descripcion', 'Problemas', 'Prioridad', 'Categoria'] if c in df_resumen.columns]
             st.dataframe(
                 df_resumen[cols_show],
                 column_config=col_config,
@@ -79,19 +70,26 @@ if archivo:
                 hide_index=True,
             )
 
-            # Metricas rapidas
             st.subheader('📊 Métricas rápidas')
             col1, col2, col3, col4 = st.columns(4)
             total = analizador.total_registros if hasattr(analizador, 'total_registros') else 0
-            criticos = len([r for r in analizador.resumen if str(r.get('Prioridad', '')).lower() == 'critica' and r.get('Problemas', 0) > 0])
-            altos = len([r for r in analizador.resumen if str(r.get('Prioridad', '')).lower() == 'alta' and r.get('Problemas', 0) > 0])
+
+            criticos = sum(
+                1 for r in analizador.resumen
+                if str(r.get('Prioridad', '')).lower() == 'critica'
+                and r.get('Problemas', 0) > 0
+            )
+            altos = sum(
+                1 for r in analizador.resumen
+                if str(r.get('Prioridad', '')).lower() == 'alta'
+                and r.get('Problemas', 0) > 0
+            )
 
             col1.metric('Total registros', f'{total:,}')
             col2.metric('Verificaciones', len(analizador.resumen))
             col3.metric('Críticos', criticos)
             col4.metric('Alta prioridad', altos)
 
-            # Boton descarga
             with open(ruta_reporte, 'rb') as f:
                 buf = BytesIO(f.read())
             st.download_button(
