@@ -8,7 +8,7 @@ import streamlit as st
 import sys, os
 from datetime import datetime
 
-sys.path.insert(0, os.path.dirname(__file__))
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
 from config.colores import AZUL_PRINCIPAL, AZUL_SECUNDARIO, VERSION
 from components.css_sihce import CSS_GLOBAL
