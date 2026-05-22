@@ -55,14 +55,14 @@ if archivo:
             st.subheader('📋 Resumen de verificaciones')
 
             col_config = {
-                'Verificacion': st.column_config.TextColumn('Verificación'),
-                'Descripcion': st.column_config.TextColumn('Descripción'),
+                'Verificación': st.column_config.TextColumn('Verificación'),
+                'Detalle': st.column_config.TextColumn('Descripción'),
                 'Problemas': st.column_config.NumberColumn('Problemas'),
                 'Prioridad': st.column_config.TextColumn('Prioridad'),
-                'Categoria': st.column_config.TextColumn('Categoría'),
+                'Categoría': st.column_config.TextColumn('Categoría'),
             }
 
-            cols_show = [c for c in ['Verificacion', 'Descripcion', 'Problemas', 'Prioridad', 'Categoria'] if c in df_resumen.columns]
+            cols_show = [c for c in ['Verificación', 'Detalle', 'Problemas', 'Prioridad', 'Categoría'] if c in df_resumen.columns]
             st.dataframe(
                 df_resumen[cols_show],
                 column_config=col_config,
