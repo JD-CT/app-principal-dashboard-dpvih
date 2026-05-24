@@ -669,14 +669,14 @@ class AnalizadorCalidadDatos:
             if registros.empty:
                 continue
 
-            sheet_name = f"{res['id']:02d}_{nombre[:22]}"
+            sheet_name = f"{res['id']:02d}_{nom[:22]}"
             ws_det = wb.create_sheet(sheet_name)
 
             # Cabecera informativa
             ws_det.cell(row=1, column=1, value='VERIFICACIÓN').font = FONT_BOLD
-            ws_det.cell(row=1, column=2, value=meta['descripcion'])
+            ws_det.cell(row=1, column=2, value=meta['d'])
             ws_det.cell(row=2, column=1, value='CAMPOS').font = FONT_BOLD
-            ws_det.cell(row=2, column=2, value=', '.join(meta['campos']))
+            ws_det.cell(row=2, column=2, value=', '.join(meta['c']))
             ws_det.cell(row=3, column=1, value='TOTAL REGISTROS').font = FONT_BOLD
             ws_det.cell(row=3, column=2, value=res['revisados'])
             ws_det.cell(row=4, column=1, value='PROBLEMAS').font = FONT_BOLD
@@ -684,9 +684,9 @@ class AnalizadorCalidadDatos:
             ws_det.cell(row=5, column=1, value='%').font = FONT_BOLD
             ws_det.cell(row=5, column=2, value=f"{res['porcentaje']:.2f}%")
             ws_det.cell(row=6, column=1, value='PRIORIDAD').font = FONT_BOLD
-            ws_det.cell(row=6, column=2, value=meta['prioridad'].upper())
+            ws_det.cell(row=6, column=2, value=meta['p'].upper())
             ws_det.cell(row=7, column=1, value='CATEGORÍA').font = FONT_BOLD
-            ws_det.cell(row=7, column=2, value=meta['categoria'].upper())
+            ws_det.cell(row=7, column=2, value=meta['cat'].upper())
 
             # Datos
             start_row = 9
@@ -699,9 +699,9 @@ class AnalizadorCalidadDatos:
                     cell = ws_det.cell(row=r_idx, column=c_idx, value=value)
                     if r_idx == start_row:
                         cell.font = FONT_BOLD
-                        if cols_to_write[c_idx-1] in meta['campos']:
+                        if cols_to_write[c_idx-1] in meta['c']:
                             cell.fill = FILL_YELLOW
-                    elif cols_to_write[c_idx-1] in meta['campos']:
+                    elif cols_to_write[c_idx-1] in meta['c']:
                         cell.fill = FILL_YELLOW
 
             # Autoajuste
