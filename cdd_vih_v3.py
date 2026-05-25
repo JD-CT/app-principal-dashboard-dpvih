@@ -205,8 +205,16 @@ def _documentos_duplicados(df):
 
 def _documentos_incorrectos(df):
     df = df.copy()
+    # Si numero_documento viene como float (ej: 8912345.0 por ceros iniciales),
+    # lo convertimos a string respetando ceros a la izquierda
     if df['numero_documento'].dtype != 'object':
-        df['numero_documento'] = df['numero_documento'].astype(str)
+        # Caso tipico: float 8912345.0 -> perdio ceros iniciales
+        # No podemos recuperarlos, pero al menos evitamos falsos positivos
+        # convirtiendo a int64 (sin decimales) y luego a str
+        df['numero_documento'] = (
+            pd.to_numeric(df['numero_documento'], errors='coerce')
+            .fillna(0).astype('int64').astype(str)
+        )
     cfg_doc = Config().LONGITUDES_DOC
     conds = []
     for tipo, (longitud, _) in cfg_doc.items():
@@ -629,7 +637,7 @@ class AnalizadorCalidadDatos:
                         'ID': idx, 'Verificación': item['t'],
                         'Categoría': item['cat'], 'Prioridad': item['p'],
                         'Registros': self.total_registros, 'Problemas': cant,
-                        '%': f"{pct:.2f}%", 'Estado': 'OK',
+                        '%': f"{pct:.2f}%", 'Estado': 'REVISAR',
                         'Criterio': CRITERIOS.get(nombre, ''),
                         'Descripción': item['d'],
                     })
@@ -672,7 +680,7 @@ class AnalizadorCalidadDatos:
         info = [
             ('Total Registros', self.total_registros),
             ('Verificaciones Registradas', len(VERIFICACIONES)),
-            ('Verificaciones Ejecutadas', len([r for r in self.resumen if r['Estado'] == 'OK' or r['Estado'] == 'SIN PROBLEMAS'])),
+            ('Verificaciones Ejecutadas', len([r for r in self.resumen if r['Estado'] == 'REVISAR' or r['Estado'] == 'SIN PROBLEMAS'])),
             ('Verificaciones con Problemas', sum(1 for r in self.resumen if isinstance(r.get('Problemas'), int) and r['Problemas'] > 0)),
             ('Verificaciones Omitidas', len(self._verificaciones_omitidas)),
             ('Fecha Análisis', datetime.now().strftime('%Y-%m-%d %H:%M:%S')),
