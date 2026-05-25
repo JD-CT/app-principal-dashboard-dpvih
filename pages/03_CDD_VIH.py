@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-# Pagina Streamlit: Calidad del Dato VIH-TAR
-# Creado: 2026-05-22
-# Descripcion: Subir Excel TAR, ejecuta CDD VIH v3.1, muestra resumen y descarga resultado completo
+# Pagina Streamlit: Calidad del Dato VIH-TAR v3.2
+# Creado: 2026-05-22 (ultima revision: 2026-05-25)
+# Descripcion: Subir Excel TAR, ejecuta CDD VIH v3.2, muestra resumen y descarga Excel completo
 
 import sys
 import os
