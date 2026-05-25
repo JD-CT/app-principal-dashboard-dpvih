@@ -100,7 +100,18 @@ if archivo:
                 type='primary',
             )
 
-            st.success(f'Reporte generado: {os.path.basename(ruta_reporte)}')
+            # Mostrar que hojas contiene el Excel
+            import openpyxl
+            wb_tmp = openpyxl.load_workbook(ruta_reporte, read_only=True)
+            hojas = wb_tmp.sheetnames
+            wb_tmp.close()
+
+            with st.expander(f'📑 Hojas del reporte ({len(hojas)} en total)'):
+                for h in hojas:
+                    icon = '📊' if h.startswith('Resumen') else ('⏱️' if h.startswith('Tiempo') else '📋')
+                    st.markdown(f'{icon} **{h}**')
+
+            st.success(f'Reporte generado: {os.path.basename(ruta_reporte)} — {len(hojas)} hojas')
 
         except Exception as e:
             st.error(f'Error al ejecutar CDD: {e}')
