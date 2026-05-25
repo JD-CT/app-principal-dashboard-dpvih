@@ -90,28 +90,56 @@ if archivo:
             col3.metric('Críticos', criticos)
             col4.metric('Alta prioridad', altos)
 
-            # Leer el Excel generado por el CDD como bytes
-            with open(ruta_reporte, 'rb') as f:
-                excel_bytes = f.read()
+            # Generar Excel completo en memoria con todas las hojas
+            import openpyxl
+            from openpyxl.utils.dataframe import dataframe_to_rows
+
+            buf = BytesIO()
+            with pd.ExcelWriter(buf, engine='openpyxl') as writer:
+                # Hoja 1: Resumen General
+                df_gen = pd.DataFrame({
+                    'Métrica': ['Total Registros', 'Total Verificaciones', 'Registros con Problemas',
+                                'Críticos', 'Alta Prioridad', 'Media Prioridad', 'Baja Prioridad'],
+                    'Valor': [
+                        total,
+                        len(analizador.resumen),
+                        sum(r.get('Problemas', 0) for r in analizador.resumen),
+                        criticos, altos,
+                        sum(1 for r in analizador.resumen
+                            if str(r.get('Prioridad', '')).lower() == 'media'
+                            and r.get('Problemas', 0) > 0),
+                        sum(1 for r in analizador.resumen
+                            if str(r.get('Prioridad', '')).lower() == 'baja'
+                            and r.get('Problemas', 0) > 0),
+                    ]
+                })
+                df_gen.to_excel(writer, sheet_name='Resumen General', index=False)
+
+                # Hoja 2: Resumen Verificaciones (todo el resumen)
+                df_resumen.to_excel(writer, sheet_name='Resumen Verificaciones', index=False)
+
+                # Hojas detalladas: una por cada verificacion con problemas
+                if hasattr(analizador, '_sheets') and analizador._sheets:
+                    for nombre_meta in analizador._sheets:
+                        # Buscar el registro en resumen
+                        res = next((r for r in analizador.resumen if r['id'] == int(nombre_meta.split('_')[0])), None)
+                        if res and not res.get('registros', pd.DataFrame()).empty:
+                            df_det = res['registros']
+                            sheet_name = nombre_meta[:31]  # Excel max 31 chars
+                            df_det.to_excel(writer, sheet_name=sheet_name, index=False)
+
+            buf.seek(0)
 
             st.download_button(
                 label='📥 Descargar Excel completo (.xlsx)',
-                data=excel_bytes,
-                file_name=os.path.basename(ruta_reporte),
+                data=buf,
+                file_name=f'CDD_VIH_v3.2_completo.xlsx',
                 mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 type='primary',
                 use_container_width=True,
             )
 
-            # Mostrar que hojas contiene (sin recargar el Excel completo)
-            hojas = [s for s in analizador._sheets if hasattr(analizador, '_sheets')] or []
-
-            with st.expander(f'📑 Hojas del reporte ({len(hojas)} en total)'):
-                for h in hojas:
-                    icon = '📊' if h.startswith('Resumen') else ('⏱️' if h.startswith('Tiempo') else '📋')
-                    st.markdown(f'{icon} **{h}**')
-
-            st.success(f'Reporte generado: {os.path.basename(ruta_reporte)}')
+            st.success('Reporte Excel completo listo para descargar. Incluye todas las hojas del CDD v3.2.')
 
         except Exception as e:
             st.error(f'Error al ejecutar CDD: {e}')
