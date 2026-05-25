@@ -568,11 +568,15 @@ class AnalizadorCalidadDatos:
         cols_int = ['atenciones', 'edad_gestacional', 'paciente_id']
         for c in cols_int:
             if c in self.df.columns:
-                self.df[c] = pd.to_numeric(self.df[c], errors='coerce').astype('Int64').fillna(0)
+                vals = pd.to_numeric(self.df[c], errors='coerce')
+                vals = vals.replace([float('inf'), float('-inf')], pd.NA).fillna(0).astype('Int64')
+                self.df[c] = vals
         cols_float = ['ultimo_cv']
         for c in cols_float:
             if c in self.df.columns:
-                self.df[c] = pd.to_numeric(self.df[c], errors='coerce').fillna(0)
+                vals = pd.to_numeric(self.df[c], errors='coerce')
+                vals = vals.replace([float('inf'), float('-inf')], pd.NA).fillna(0)
+                self.df[c] = vals
         self._convertir_fechas()
         self._validar_estructura()
         if 'condicion' in self.df.columns:
