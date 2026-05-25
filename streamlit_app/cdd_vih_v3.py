@@ -206,15 +206,16 @@ def _documentos_duplicados(df):
 def _documentos_incorrectos(df):
     df = df.copy()
     # Si numero_documento viene como float (ej: 8912345.0 por ceros iniciales),
-    # lo convertimos a string respetando ceros a la izquierda
+    # lo convertimos a string sin perder ceros a la izquierda
     if df['numero_documento'].dtype != 'object':
-        # Caso tipico: float 8912345.0 -> perdio ceros iniciales
-        # No podemos recuperarlos, pero al menos evitamos falsos positivos
-        # convirtiendo a int64 (sin decimales) y luego a str
-        df['numero_documento'] = (
-            pd.to_numeric(df['numero_documento'], errors='coerce')
-            .fillna(0).astype('int64').astype(str)
-        )
+        # Convertir float -> int -> str, pero primero quitamos .0
+        # Caso: 8912345.0 -> '8912345.0' -> reemplazamos .0 por ''
+        col_str = df['numero_documento'].astype(str).str.replace(r'\.0$', '', regex=True)
+        # Para DNI (8 digitos), rellenamos con ceros a la izquierda si es posible
+        # porque Excel trunca los ceros iniciales al leer como numero
+        mask_dni = df['tipo_documento'].str.upper() == 'DNI'
+        col_str = col_str.str.zfill(8).where(mask_dni, col_str)
+        df['numero_documento'] = col_str
     cfg_doc = Config().LONGITUDES_DOC
     conds = []
     for tipo, (longitud, _) in cfg_doc.items():
