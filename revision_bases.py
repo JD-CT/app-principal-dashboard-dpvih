@@ -57,9 +57,10 @@ COLUMNAS_ESPERADAS = COLUMNAS_ITS + COLUMNAS_TAR + COLUMNAS_PREP
 VERIFICACIONES = [
     {
         'n': 'tamizajes_no_vih',
-        't': 'Tamizajes que no son VIH/Dual',
-        'd': 'Registros con tipo de tamizaje diferente a VIH o Dual. '
-             'Según el proceso, deben filtrarse para quedarse solo con VIH/Dual.',
+        't': 'Tamizajes que NO son VIH/DVI',
+        'd': 'Registros con tipo de tamizaje diferente a VIH o DVI (Dual). '
+             'HEC (Hepatitis C), HEB (Hepatitis B) y SIF (Sífilis) '
+             'deben filtrarse del procesamiento.',
         'c': ['tipo_tamizaje'],
         'p': 'media',
         'cat': 'filtro'
@@ -148,10 +149,11 @@ CRITERIOS = {v['n']: f"Columna(s): {', '.join(v['c'])} | Prioridad: {v['p']}" fo
 
 
 def _tamizajes_no_vih(df):
-    """Filtrar tamizajes que NO son VIH/Dual"""
+    """Filtrar tamizajes que NO son VIH/DVI (Dual VIH)"""
     if 'tipo_tamizaje' not in df.columns:
         return pd.DataFrame()
-    d = df[~df['tipo_tamizaje'].str.upper().str.contains('VIH|DUAL', na=False)]
+    # Solo son válidos: VIH y DVI (Dual). El resto (HEC=HepC, HEB=HepB, SIF) se filtran.
+    d = df[~df['tipo_tamizaje'].str.upper().isin(['VIH', 'DVI'])]
     return d if not d.empty else pd.DataFrame()
 
 
