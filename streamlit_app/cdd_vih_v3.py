@@ -247,6 +247,9 @@ def _tipo_doc_vacio(df):
     return anotar_inconsistencia(d, ['tipo_documento'], "Tipo de documento no especificado")
 
 def _continuadores_incorrectos(df):
+    df = df.copy()
+    if 'atenciones' in df.columns and df['atenciones'].dtype == 'object':
+        df['atenciones'] = pd.to_numeric(df['atenciones'], errors='coerce').fillna(0)
     d = df[(df['condicion'].str.upper() == 'CONTINUADOR') & (df['atenciones'] < 2)]
     return anotar_inconsistencia(d, ['condicion','atenciones'],
                                  "CONTINUADOR con menos de 2 atenciones")
@@ -600,6 +603,16 @@ class AnalizadorCalidadDatos:
     def analizar(self) :
         if self.df is None:
             raise ValueError("No hay datos cargados")
+        # Forzar columnas numericas por si vienen como texto desde Excel
+        cols_num = ['atenciones', 'ultimo_cv', 'edad_gestacional', 'paciente_id']
+        for c in cols_num:
+            if c in self.df.columns and self.df[c].dtype == 'object':
+                self.df[c] = (
+                    pd.to_numeric(
+                        self.df[c].astype(str).str.replace(',', '.').str.strip(),
+                        errors='coerce'
+                    ).fillna(0)
+                )
         log.info(f"Iniciando análisis: {self.total_registros} registros, "
                  f"{len(VERIFICACIONES)} verificaciones registradas")
 
