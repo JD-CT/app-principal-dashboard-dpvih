@@ -30,7 +30,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<div class="main-header"><h1>🩺 Calidad del Dato VIH-TAR</h1><p>Sube el reporte Excel de TAR para ejecutar el CDD v3.1</p></div>', unsafe_allow_html=True)
+st.markdown('<div class="main-header"><h1>🩺 Calidad del Dato VIH-TAR</h1><p>Sube el reporte Excel de TAR para ejecutar el CDD v3.2</p></div>', unsafe_allow_html=True)
 
 archivo = st.file_uploader(
     'Selecciona archivo Excel', type=['xlsx', 'xls'],
