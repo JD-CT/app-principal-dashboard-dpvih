@@ -44,12 +44,18 @@ if archivo:
             tmp.write(archivo.getvalue())
             ruta_tmp = tmp.name
 
+        error_msg = None
+        analizador = None
         try:
             analizador = AnalizadorCalidadDatos()
             analizador.cargar_datos(ruta_tmp)
             analizador.analizar()
-            ruta_reporte = analizador.generar_reporte()
+        except Exception as e:
+            error_msg = str(e)
+            st.error(f'Error en verificaciones: {error_msg}')
+            # Aun si hay error, continuamos para mostrar lo que se pueda
 
+        if analizador is not None and hasattr(analizador, 'resumen') and analizador.resumen:
             df_resumen = pd.DataFrame(analizador.resumen)
 
             st.subheader('📋 Resumen de verificaciones')
@@ -70,80 +76,78 @@ if archivo:
                 hide_index=True,
             )
 
+            # --- METRICAS RAPIDAS: solo con verificaciones que tienen problemas ---
             st.subheader('📊 Métricas rápidas')
-            col1, col2, col3, col4 = st.columns(4)
+
             total = analizador.total_registros if hasattr(analizador, 'total_registros') else 0
+            verificaciones_con_problemas = [r for r in analizador.resumen if r.get('Problemas', 0) > 0]
+            total_problemas = sum(r.get('Problemas', 0) for r in analizador.resumen)
 
-            criticos = sum(
-                1 for r in analizador.resumen
-                if str(r.get('Prioridad', '')).lower() == 'critica'
-                and r.get('Problemas', 0) > 0
-            )
-            altos = sum(
-                1 for r in analizador.resumen
-                if str(r.get('Prioridad', '')).lower() == 'alta'
-                and r.get('Problemas', 0) > 0
-            )
+            criticos = sum(1 for r in verificaciones_con_problemas
+                           if str(r.get('Prioridad', '')).lower() == 'critica')
+            altos = sum(1 for r in verificaciones_con_problemas
+                        if str(r.get('Prioridad', '')).lower() == 'alta')
 
+            col1, col2, col3, col4 = st.columns(4)
             col1.metric('Total registros', f'{total:,}')
-            col2.metric('Verificaciones', len(analizador.resumen))
+            col2.metric('Verif. con problemas', len(verificaciones_con_problemas))
             col3.metric('Críticos', criticos)
             col4.metric('Alta prioridad', altos)
 
-            # Generar Excel completo en memoria con todas las hojas
-            import openpyxl
-            from openpyxl.utils.dataframe import dataframe_to_rows
+            # --- DESCARGA .xlsx: construye Excel manual con datos del resumen ---
+            try:
+                buf = BytesIO()
+                with pd.ExcelWriter(buf, engine='openpyxl') as writer:
+                    # Hoja 1: Resumen General
+                    df_gen = pd.DataFrame({
+                        'Metrica': ['Total Registros', 'Verificaciones con problemas',
+                                    'Total problemas encontrados', 'Criticos', 'Alta prioridad'],
+                        'Valor': [total, len(verificaciones_con_problemas),
+                                  total_problemas, criticos, altos]
+                    })
+                    df_gen.to_excel(writer, sheet_name='Resumen General', index=False)
 
-            buf = BytesIO()
-            with pd.ExcelWriter(buf, engine='openpyxl') as writer:
-                # Hoja 1: Resumen General
-                df_gen = pd.DataFrame({
-                    'Métrica': ['Total Registros', 'Total Verificaciones', 'Registros con Problemas',
-                                'Críticos', 'Alta Prioridad', 'Media Prioridad', 'Baja Prioridad'],
-                    'Valor': [
-                        total,
-                        len(analizador.resumen),
-                        sum(r.get('Problemas', 0) for r in analizador.resumen),
-                        criticos, altos,
-                        sum(1 for r in analizador.resumen
-                            if str(r.get('Prioridad', '')).lower() == 'media'
-                            and r.get('Problemas', 0) > 0),
-                        sum(1 for r in analizador.resumen
-                            if str(r.get('Prioridad', '')).lower() == 'baja'
-                            and r.get('Problemas', 0) > 0),
-                    ]
-                })
-                df_gen.to_excel(writer, sheet_name='Resumen General', index=False)
+                    # Hoja 2: Resumen Verificaciones (todo el resultado)
+                    df_resumen.to_excel(writer, sheet_name='Resumen Verificaciones', index=False)
 
-                # Hoja 2: Resumen Verificaciones (todo el resumen)
-                df_resumen.to_excel(writer, sheet_name='Resumen Verificaciones', index=False)
+                    # Hojas detalladas: una por cada verificacion con registros de problema
+                    for idx, r in enumerate(analizador.resumen, 1):
+                        registros = r.get('registros')
+                        if registros is not None and isinstance(registros, pd.DataFrame) and not registros.empty:
+                            sheet_name = f"{idx:02d}_{str(r.get('t', r.get('n', f'verif{idx}')))[:27]}"
+                            registros.to_excel(writer, sheet_name=sheet_name, index=False)
 
-                # Hojas detalladas: una por cada verificacion con problemas
-                if hasattr(analizador, '_sheets') and analizador._sheets:
-                    for nombre_meta in analizador._sheets:
-                        # Buscar el registro en resumen
-                        res = next((r for r in analizador.resumen if r['id'] == int(nombre_meta.split('_')[0])), None)
-                        if res and not res.get('registros', pd.DataFrame()).empty:
-                            df_det = res['registros']
-                            sheet_name = nombre_meta[:31]  # Excel max 31 chars
-                            df_det.to_excel(writer, sheet_name=sheet_name, index=False)
+                buf.seek(0)
 
-            buf.seek(0)
+                st.download_button(
+                    label='📥 Descargar Excel completo (.xlsx)',
+                    data=buf,
+                    file_name='CDD_VIH_v3.2_completo.xlsx',
+                    mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                    type='primary',
+                    use_container_width=True,
+                )
 
-            st.download_button(
-                label='📥 Descargar Excel completo (.xlsx)',
-                data=buf,
-                file_name=f'CDD_VIH_v3.2_completo.xlsx',
-                mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-                type='primary',
-                use_container_width=True,
-            )
+                st.success('Reporte Excel (.xlsx) listo para descargar.')
+            except Exception as e:
+                st.warning(f'No se pudo generar el Excel: {e}')
+                # Como fallback, ofrecer CSV
+                csv_data = df_resumen.to_csv(index=False).encode('utf-8')
+                st.download_button(
+                    label='📥 Descargar resumen como CSV',
+                    data=csv_data,
+                    file_name='CDD_VIH_v3.2_resumen.csv',
+                    mime='text/csv',
+                )
 
-            st.success('Reporte Excel completo listo para descargar. Incluye todas las hojas del CDD v3.2.')
+        else:
+            if not error_msg:
+                st.warning('El CDD se ejecuto pero no se obtuvieron resultados.')
 
-        except Exception as e:
-            st.error(f'Error al ejecutar CDD: {e}')
-        finally:
+        # Limpiar archivo temporal
+        try:
             os.unlink(ruta_tmp)
+        except:
+            pass
 else:
     st.info('Sube un archivo Excel para comenzar el análisis de calidad de datos.')

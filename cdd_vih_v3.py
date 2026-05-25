@@ -248,7 +248,10 @@ def _tipo_doc_vacio(df):
 
 def _continuadores_incorrectos(df):
     df = df.copy()
-    if 'atenciones' in df.columns and df['atenciones'].dtype == 'object':
+    if 'atenciones' not in df.columns:
+        return anotar_inconsistencia(pd.DataFrame(), ['condicion'],
+                                     "Columna 'atenciones' no disponible")
+    if df['atenciones'].dtype == 'object':
         df['atenciones'] = pd.to_numeric(df['atenciones'], errors='coerce').fillna(0)
     d = df[(df['condicion'].str.upper() == 'CONTINUADOR') & (df['atenciones'] < 2)]
     return anotar_inconsistencia(d, ['condicion','atenciones'],
@@ -568,7 +571,7 @@ class AnalizadorCalidadDatos:
                 self.df.rename(columns={old: new}, inplace=True)
                 log.info(f"Columna renombrada: {old} → {new}")
         # Forzar columnas numericas (vienen como string si Excel tiene datos mixtos)
-        cols_int = ['atenciones', 'edad_gestacional', 'paciente_id']
+        cols_int = ['edad_gestacional', 'paciente_id']
         for c in cols_int:
             if c in self.df.columns:
                 vals = pd.to_numeric(self.df[c], errors='coerce')
