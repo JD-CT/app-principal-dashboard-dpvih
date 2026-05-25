@@ -568,7 +568,7 @@ class AnalizadorCalidadDatos:
         cols_int = ['atenciones', 'edad_gestacional', 'paciente_id']
         for c in cols_int:
             if c in self.df.columns:
-                self.df[c] = pd.to_numeric(self.df[c], errors='coerce').fillna(0).astype(int)
+                self.df[c] = pd.to_numeric(self.df[c], errors='coerce').astype('Int64').fillna(0)
         cols_float = ['ultimo_cv']
         for c in cols_float:
             if c in self.df.columns:
