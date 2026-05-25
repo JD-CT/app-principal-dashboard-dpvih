@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 # MENU PRINCIPAL - SIHCE DPVIH MINSA
-# Creado: 2026-05-18
+# Creado: 2026-05-18 (actualizado: 2026-05-25)
 # Descripcion: Punto de entrada. Muestra los modulos disponibles como tarjetas.
 
 import streamlit as st

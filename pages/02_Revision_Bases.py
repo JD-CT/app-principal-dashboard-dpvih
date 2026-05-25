@@ -50,10 +50,9 @@ st.markdown("### 📂 Cargar datos de revisión")
 col_file, col_bd = st.columns([2, 1])
 
 with col_file:
-    modo = st.radio("Origen de datos", ["Excel (trama unificada)", 
-        "Desde PostgreSQL (requiere conexión)"], horizontal=True, index=0)
+    modo = "Excel (trama unificada)"
 
-if modo.startswith("Excel"):
+if True:
     archivo = st.file_uploader(
         "Selecciona el archivo Trama_Unificada.xlsx (generado por Script 1)",
         type=['xlsx']
@@ -300,8 +299,6 @@ if escenario == "TODOS" or escenario == "3 - TAR/PrEP sin tamizaje":
     st.markdown("Pacientes en TAR o PrEP que no registran tamizajes en el módulo ITS.")
     
     st.info("""
-    ℹ️ Este escenario requiere consultar la base de datos PostgreSQL.
-    
     Ejecuta el Script 3 (`generar_reporte_revision.py`) para obtener:
     - Pacientes TAR sin tamizaje ITS
     - Pacientes PrEP sin tamizaje ITS
