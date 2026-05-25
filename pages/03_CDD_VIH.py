@@ -90,21 +90,22 @@ if archivo:
             col3.metric('Críticos', criticos)
             col4.metric('Alta prioridad', altos)
 
-            with open(ruta_reporte, 'rb') as f:
-                buf = BytesIO(f.read())
+            # Construir Excel completo en memoria (todas las hojas del CDD)
+            import openpyxl
+            wb_tmp = openpyxl.load_workbook(ruta_reporte)
+            hojas = wb_tmp.sheetnames
+
+            buf = BytesIO()
+            wb_tmp.save(buf)
+            buf.seek(0)
+
             st.download_button(
-                label='📥 Descargar reporte Excel completo',
+                label='📥 Descargar Excel completo (.xlsx)',
                 data=buf,
                 file_name=os.path.basename(ruta_reporte),
                 mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 type='primary',
             )
-
-            # Mostrar que hojas contiene el Excel
-            import openpyxl
-            wb_tmp = openpyxl.load_workbook(ruta_reporte, read_only=True)
-            hojas = wb_tmp.sheetnames
-            wb_tmp.close()
 
             with st.expander(f'📑 Hojas del reporte ({len(hojas)} en total)'):
                 for h in hojas:
