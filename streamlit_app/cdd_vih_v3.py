@@ -564,6 +564,15 @@ class AnalizadorCalidadDatos:
             if old in self.df.columns:
                 self.df.rename(columns={old: new}, inplace=True)
                 log.info(f"Columna renombrada: {old} → {new}")
+        # Forzar columnas numericas (vienen como string si Excel tiene datos mixtos)
+        cols_int = ['atenciones', 'edad_gestacional', 'paciente_id']
+        for c in cols_int:
+            if c in self.df.columns:
+                self.df[c] = pd.to_numeric(self.df[c], errors='coerce').fillna(0).astype(int)
+        cols_float = ['ultimo_cv']
+        for c in cols_float:
+            if c in self.df.columns:
+                self.df[c] = pd.to_numeric(self.df[c], errors='coerce').fillna(0)
         self._convertir_fechas()
         self._validar_estructura()
         if 'condicion' in self.df.columns:
