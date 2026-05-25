@@ -84,7 +84,7 @@ CRITERIOS = {
     'documentos_incorrectos': 'Valida longitud del número según tipo: DNI=8, CarnéExt=9, Pasaporte=8-10, DI Extranjero=8-12. Fuera de esos rangos = incorrecto.',
     'extranjeros_peru': 'Filtra pacientes con tipo_documento de extranjero (CE/pasaporte/DI) cuyo pais_origen = Perú. Inconsistencia lógica.',
     'tipo_doc_vacio': 'Cuenta registros donde tipo_documento es nulo, vacío o no está en los valores esperados (DNI, CE, pasaporte, DI extranjero).',
-    'pacientes_nuevos_incorrectos': 'Pacientes con una sola atención (1 registro en BD) pero condición distinta de NUEVO. Regla de negocio: primer registro debe ser Nuevo.',
+
     'continuadores_incorrectos': 'Condición=CONTINUADOR con menos de 2 atenciones registradas. No pueden ser continuadores sin atención previa.',
     'derivados_sin_fecha': 'Condición=DERIVADO con fecha_derivacion vacía, o fecha_derivacion presente sin condición=DERIVADO. Datos inconsistentes.',
     'abandono_incorrecto': 'Fecha_abandono o fecha_recuperacion_abandono presente pero condición != ABANDONO. Datos huérfanos.',
@@ -107,7 +107,7 @@ CRITERIOS = {
     'recuperacion_posterior_fallecimiento': 'fecha_recuperacion_abandono > fecha_fallecimiento. Imposible.',
     'ultimo_cv_anterior_tar': 'fecha_cv_basal < fecha_inicio_tar. CV basal antes del TAR.',
     'ultimo_esquema_actual_vacio': 'esquema_actual nulo o vacío. No se sabe qué ARV recibe.',
-    'fecha_posterior_hoy': 'Cualquier fecha del registro > fecha actual. Error cronológico.',
+    'fecha_posterior_hoy': 'Revisa todas las fechas del registro excepto fecha_proxima_cita (cita futura válida). Cualquier fecha > hoy = error cronológico.',
     'esquema_actual_vs_cv': 'CV < 1000 copias (suprimida) con esquema no correspondiente a primera línea.',
     'gestante_inconsistente': 'sexo=FEMENINO con edad_gestacional>0 pero poblacion_clave sin PG.',
 }
@@ -121,7 +121,7 @@ VERIFICACIONES = [
     {'n': 'documentos_incorrectos', 't': 'Documentos con longitud incorrecta', 'd': 'El número de documento no cumple con la longitud esperada según su tipo: DNI = 8 dígitos, Carné de Extranjería = 9, Pasaporte = 8-10, DI Extranjero = 8-12.', 'c': ['tipo_documento', 'numero_documento'], 'p': 'alta', 'cat': 'consistencia'},
     {'n': 'extranjeros_peru', 't': 'Extranjeros con país Perú', 'd': 'Paciente con tipo de documento de extranjero (carné de extranjería, pasaporte o DI extranjero) pero con país de origen registrado como Perú. Inconsistencia que debe corregirse.', 'c': ['tipo_documento', 'pais_origen'], 'p': 'media', 'cat': 'consistencia'},
     {'n': 'tipo_doc_vacio', 't': 'Tipo de documento vacío', 'd': 'El tipo de documento del paciente no ha sido especificado. Es un campo obligatorio para la identificación del paciente en el sistema.', 'c': ['tipo_documento'], 'p': 'alta', 'cat': 'completitud'},
-    {'n': 'pacientes_nuevos_incorrectos', 't': 'Nuevos mal clasificados', 'd': 'Paciente con una sola atención registrada pero su condición no está marcada como "Nuevo". Según la lógica del módulo TAR, si solo tiene un registro debería ser condición Nuevo.', 'c': ['condicion', 'paciente_id'], 'p': 'alta', 'cat': 'reporte'},
+
     {'n': 'continuadores_incorrectos', 't': 'Continuadores sin atención previa', 'd': 'Paciente marcado como "Continuador" pero tiene menos de 2 atenciones registradas. Un continuador debe tener al menos una atención previa.', 'c': ['condicion', 'atenciones'], 'p': 'alta', 'cat': 'reporte'},
     {'n': 'derivados_sin_fecha', 't': 'Derivados sin fecha de derivación', 'd': 'Registro con condición "Derivado" pero sin fecha de derivación, o con fecha de derivación pero sin la condición correspondiente. Ambas deben ir juntas.', 'c': ['condicion', 'fecha_derivacion'], 'p': 'media', 'cat': 'consistencia'},
     {'n': 'abandono_incorrecto', 't': 'Abandono con fechas inconsistentes', 'd': 'Registro que tiene fecha de abandono o fecha de recuperación de abandono pero la condición del paciente no está marcada como "Abandono". Datos huérfanos sin coherencia.', 'c': ['condicion', 'fecha_abandono', 'fecha_recuperacion_abandono'], 'p': 'alta', 'cat': 'consistencia'},
@@ -144,7 +144,7 @@ VERIFICACIONES = [
     {'n': 'recuperacion_posterior_fallecimiento', 't': 'Recuperación después de fallecer', 'd': 'La fecha de recuperación de abandono es posterior a la fecha de fallecimiento del paciente. Es imposible recuperarse del abandono después de fallecer.', 'c': ['fecha_recuperacion_abandono', 'fecha_fallecimiento'], 'p': 'critica', 'cat': 'consistencia'},
     {'n': 'ultimo_cv_anterior_tar', 't': 'CV basal anterior al inicio TAR', 'd': 'La fecha de la carga viral basal es anterior a la fecha de inicio de TAR. La CV basal debería tomarse antes o al iniciar el tratamiento.', 'c': ['fecha_cv_basal', 'fecha_inicio_tar'], 'p': 'alta', 'cat': 'consistencia'},
     {'n': 'ultimo_esquema_actual_vacio', 't': 'Esquema actual vacío', 'd': 'El campo de esquema actual está vacío. Se desconoce qué tratamiento ARV está recibiendo el paciente actualmente.', 'c': ['esquema_actual'], 'p': 'alta', 'cat': 'completitud'},
-    {'n': 'fecha_posterior_hoy', 't': 'Fechas posteriores a la actual', 'd': 'Una o más fechas del registro (nacimiento, inicio TAR, fallecimiento, abandono, derivación, esquema, CV, próxima cita) son posteriores a la fecha actual. Esto es cronológicamente imposible.', 'c': ['fecha_nacimiento', 'fecha_inicio_tar', 'fecha_fallecimiento', 'fecha_abandono', 'fecha_derivacion', 'fecha_recuperacion_abandono', 'fecha_esquema_actual', 'fecha_cv_basal', 'fecha_proxima_cita', 'fecha_ultimo_cv'], 'p': 'alta', 'cat': 'consistencia'},
+    {'n': 'fecha_posterior_hoy', 't': 'Fechas posteriores a la actual', 'd': 'Una o más fechas del registro (nacimiento, inicio TAR, fallecimiento, abandono, derivación, esquema, CV) son posteriores a la fecha actual. Esto es cronológicamente imposible. Se excluye fecha_proxima_cita porque puede ser una cita futura válida.', 'c': ['fecha_nacimiento', 'fecha_inicio_tar', 'fecha_fallecimiento', 'fecha_abandono', 'fecha_derivacion', 'fecha_recuperacion_abandono', 'fecha_esquema_actual', 'fecha_cv_basal', 'fecha_ultimo_cv'], 'p': 'alta', 'cat': 'consistencia'},
     {'n': 'esquema_actual_vs_cv', 't': 'CV suprimida con esquema inesperado', 'd': 'Paciente con carga viral suprimida (<1000 copias) pero con un esquema de tratamiento que no corresponde a un esquema de primera línea o potenciado. Posible error en el registro del esquema o de la CV.', 'c': ['esquema_actual', 'ultimo_cv', 'fecha_ultimo_cv'], 'p': 'media', 'cat': 'consistencia'},
     {'n': 'gestante_inconsistente', 't': 'Gestante sin población clave PG', 'd': 'Paciente con sexo biológico femenino y edad gestacional registrada (embarazada), pero su población clave no incluye "Gestante" (PG).', 'c': ['sexo_biologico', 'edad_gestacional', 'poblacion_clave'], 'p': 'alta', 'cat': 'consistencia'},
 ]
@@ -245,13 +245,6 @@ def _extranjeros_peru(df):
 def _tipo_doc_vacio(df):
     d = df[df['tipo_documento'].isna() | (df['tipo_documento'].astype(str).str.strip() == '')]
     return anotar_inconsistencia(d, ['tipo_documento'], "Tipo de documento no especificado")
-
-def _pacientes_nuevos_incorrectos(df):
-    c = df.groupby('paciente_id').size().reset_index(name='ct')
-    u = c[c['ct'] == 1]['paciente_id'].tolist()
-    d = df[df['paciente_id'].isin(u) & (df['condicion'].str.upper() != 'NUEVO')]
-    return anotar_inconsistencia(d, ['condicion','paciente_id'],
-                                 "Un solo registro no marcado como NUEVO")
 
 def _continuadores_incorrectos(df):
     d = df[(df['condicion'].str.upper() == 'CONTINUADOR') & (df['atenciones'] < 2)]
@@ -450,7 +443,9 @@ def _fecha_posterior_hoy(df):
     hoy = pd.Timestamp.now().normalize()
     cfg = Config()
     partes = []
-    for col in cfg.COLUMNAS_FECHA:
+    # Excluir fecha_proxima_cita porque es una cita futura válida
+    cols_revisar = [c for c in cfg.COLUMNAS_FECHA if c != 'fecha_proxima_cita']
+    for col in cols_revisar:
         if col not in df.columns:
             continue
         col_dt = pd.to_datetime(df[col], errors='coerce')
@@ -506,7 +501,6 @@ _FN_MAP = {
     'documentos_incorrectos': _documentos_incorrectos,
     'extranjeros_peru': _extranjeros_peru,
     'tipo_doc_vacio': _tipo_doc_vacio,
-    'pacientes_nuevos_incorrectos': _pacientes_nuevos_incorrectos,
     'continuadores_incorrectos': _continuadores_incorrectos,
     'derivados_sin_fecha': _derivados_sin_fecha,
     'abandono_incorrecto': _abandono_incorrecto,
