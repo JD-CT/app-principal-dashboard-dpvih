@@ -604,15 +604,16 @@ class AnalizadorCalidadDatos:
         if self.df is None:
             raise ValueError("No hay datos cargados")
         # Forzar columnas numericas por si vienen como texto desde Excel
-        cols_num = ['atenciones', 'ultimo_cv', 'edad_gestacional', 'paciente_id']
-        for c in cols_num:
-            if c in self.df.columns and self.df[c].dtype == 'object':
-                self.df[c] = (
-                    pd.to_numeric(
-                        self.df[c].astype(str).str.replace(',', '.').str.strip(),
-                        errors='coerce'
+        # Forzar conversion: cualquier columna object con >=80% numeros se convierte
+        cols_obj = [c for c in self.df.columns if self.df[c].dtype == 'object']
+        for c in cols_obj:
+            muestra = self.df[c].dropna().astype(str).str.strip()
+            if len(muestra) > 0:
+                pct_num = muestra.str.match(r'^-?\d+(\.\d+)?$', na=False).sum() / len(muestra)
+                if pct_num >= 0.8:
+                    self.df[c] = pd.to_numeric(
+                        self.df[c].astype(str).str.strip(), errors='coerce'
                     ).fillna(0)
-                )
         log.info(f"Iniciando análisis: {self.total_registros} registros, "
                  f"{len(VERIFICACIONES)} verificaciones registradas")
 
