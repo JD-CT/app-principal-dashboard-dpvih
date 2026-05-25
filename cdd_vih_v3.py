@@ -757,7 +757,7 @@ class AnalizadorCalidadDatos:
 
         self._sheets = wb.sheetnames
         wb.save(nombre_archivo)
-        log.info(f"Reporte: {nombre_archivo} — hojas: {len(self._heets)}")
+        log.info(f"Reporte: {nombre_archivo} — hojas: {len(self._sheets)}")
         return nombre_archivo
 
 # CLI
