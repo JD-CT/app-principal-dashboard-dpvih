@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-# CDD VIH v3.0 — Calidad del Dato: TAR
+# CDD VIH v3.2 — Calidad del Dato: TAR
 import gc
 import logging
 import os
@@ -21,8 +21,8 @@ class Config:
     COLUMNAS_FECHA= (
         'fecha_nacimiento', 'fecha_inicio_tar', 'fecha_fallecimiento',
         'fecha_abandono', 'fecha_derivacion', 'fecha_recuperacion_abandono',
-        'fecha_esquema_actual', 'fecha_resultado_cv_basal',
-        'prox_cita', 'fecha_resultado',
+        'fecha_esquema_actual', 'fecha_cv_basal',
+        'fecha_proxima_cita', 'fecha_ultimo_cv',
     )
     SIMILITUD_THRESHOLD= 90
     COLUMNAS_REQUERIDAS= (
@@ -78,38 +78,38 @@ def anotar_inconsistencia(df_resultado, columnas,
 # Lista plana de verificaciones (sin decoradores)
 
 VERIFICACIONES = [
-    {'n': 'nombres_similares', 'd': 'Registros con nombres similares (posibles duplicados)', 'c': ['nombres', 'apellido_paterno', 'apellido_materno'], 'p': 'alta', 'cat': 'duplicados'},
-    {'n': 'duplicados_nombres', 'd': 'Nombres y apellidos duplicados exactos', 'c': ['nombres', 'apellido_paterno', 'apellido_materno'], 'p': 'alta', 'cat': 'duplicados'},
-    {'n': 'documentos_duplicados', 'd': 'Mismo número doc. con distinto tipo', 'c': ['tipo_documento', 'numero_documento'], 'p': 'alta', 'cat': 'duplicados'},
-    {'n': 'documentos_incorrectos', 'd': 'Documentos con longitud incorrecta según tipo', 'c': ['tipo_documento', 'numero_documento'], 'p': 'alta', 'cat': 'consistencia'},
-    {'n': 'extranjeros_peru', 'd': 'Extranjeros con país de origen Perú', 'c': ['tipo_documento', 'pais_origen'], 'p': 'media', 'cat': 'consistencia'},
-    {'n': 'tipo_doc_vacio', 'd': 'Tipo de documento no especificado', 'c': ['tipo_documento'], 'p': 'alta', 'cat': 'completitud'},
-    {'n': 'pacientes_nuevos_incorrectos', 'd': 'Un solo registro no marcado como Nuevo', 'c': ['condicion', 'paciente_id'], 'p': 'alta', 'cat': 'reporte'},
-    {'n': 'continuadores_incorrectos', 'd': 'Continuadores con < 2 atenciones', 'c': ['condicion', 'atenciones'], 'p': 'alta', 'cat': 'reporte'},
-    {'n': 'derivados_sin_fecha', 'd': 'Derivado sin fecha / fecha sin derivado', 'c': ['condicion', 'fecha_derivacion'], 'p': 'media', 'cat': 'consistencia'},
-    {'n': 'abandono_incorrecto', 'd': 'Fecha abandono sin condición', 'c': ['condicion', 'fecha_abandono', 'fecha_recuperacion_abandono'], 'p': 'alta', 'cat': 'consistencia'},
-    {'n': 'abandono_por_prox_cita', 'd': 'Posible abandono: próxima cita vencida o ausente', 'c': ['condicion', 'prox_cita', 'fecha_abandono', 'fecha_recuperacion_abandono'], 'p': 'alta', 'cat': 'abandono'},
-    {'n': 'fallecidos_sin_fecha', 'd': 'Fallecidos sin fecha de fallecimiento', 'c': ['condicion', 'fecha_fallecimiento'], 'p': 'alta', 'cat': 'completitud'},
-    {'n': 'fechas_nacimiento_sospechosas', 'd': 'Fechas nac. sospechosas (peruanos)', 'c': ['fecha_nacimiento', 'pais_origen'], 'p': 'media', 'cat': 'consistencia'},
-    {'n': 'extranjeros_fechas_sospechosas', 'd': 'Fechas nac. sospechosas (extranjeros)', 'c': ['fecha_nacimiento', 'pais_origen'], 'p': 'media', 'cat': 'consistencia'},
-    {'n': 'nacimiento_posterior_tar', 'd': 'Fecha nac. posterior a inicio TAR', 'c': ['fecha_nacimiento', 'fecha_inicio_tar'], 'p': 'critica', 'cat': 'consistencia'},
-    {'n': 'sexo_no_definido', 'd': 'Sexo biológico no definido o N/D', 'c': ['sexo_biologico'], 'p': 'alta', 'cat': 'completitud'},
-    {'n': 'poblacion_incoherente', 'd': 'Incoherencia sexo ↔ población clave', 'c': ['sexo_biologico', 'poblacion_clave'], 'p': 'alta', 'cat': 'consistencia'},
-    {'n': 'pais_vacio', 'd': 'País de origen no especificado', 'c': ['pais_origen'], 'p': 'baja', 'cat': 'completitud'},
-    {'n': 'edad_gestacional_incorrecta', 'd': 'Edad gestacional fuera de rango', 'c': ['edad_gestacional'], 'p': 'media', 'cat': 'consistencia'},
-    {'n': 'inicio_tar_antes_2004', 'd': 'Inicio TAR anterior a 2004', 'c': ['fecha_inicio_tar'], 'p': 'media', 'cat': 'consistencia'},
-    {'n': 'primer_esquema_vacio', 'd': 'Primer esquema de tratamiento vacío', 'c': ['primer_esquema'], 'p': 'alta', 'cat': 'completitud'},
-    {'n': 'fecha_esquema_actual_vacia', 'd': 'Fecha último esquema vacía', 'c': ['fecha_esquema_actual'], 'p': 'alta', 'cat': 'completitud'},
-    {'n': 'tar_posterior_esquema', 'd': 'Inicio TAR posterior a fecha esquema', 'c': ['fecha_inicio_tar', 'fecha_esquema_actual'], 'p': 'alta', 'cat': 'consistencia'},
-    {'n': 'esquemas_incorrectos', 'd': 'Esquema incompatible con fecha de inicio', 'c': ['esquema_actual', 'fecha_inicio_tar'], 'p': 'alta', 'cat': 'consistencia'},
-    {'n': 'fallecimiento_mayor_100', 'd': 'Edad al fallecer > 100 años', 'c': ['fecha_fallecimiento', 'fecha_nacimiento'], 'p': 'media', 'cat': 'consistencia'},
-    {'n': 'abandono_mayor_100', 'd': 'Edad al abandonar > 100 años', 'c': ['fecha_abandono', 'fecha_nacimiento'], 'p': 'media', 'cat': 'consistencia'},
-    {'n': 'recuperacion_posterior_fallecimiento', 'd': 'Recuperación tras fallecimiento', 'c': ['fecha_recuperacion_abandono', 'fecha_fallecimiento'], 'p': 'critica', 'cat': 'consistencia'},
-    {'n': 'carga_viral_anterior_tar', 'd': 'CV basal anterior a inicio TAR', 'c': ['fecha_resultado_cv_basal', 'fecha_inicio_tar'], 'p': 'alta', 'cat': 'consistencia'},
-    {'n': 'ultimo_esquema_vacio', 'd': 'Último cambio de esquema vacío', 'c': ['ultimo_cambio_esquema'], 'p': 'alta', 'cat': 'completitud'},
-    {'n': 'fecha_posterior_hoy', 'd': 'Fechas futuras (posteriores a hoy)', 'c': ['fecha_nacimiento', 'fecha_inicio_tar', 'fecha_fallecimiento', 'fecha_abandono', 'fecha_derivacion', 'fecha_recuperacion_abandono', 'fecha_esquema_actual', 'fecha_resultado_cv_basal', 'prox_cita', 'fecha_resultado'], 'p': 'alta', 'cat': 'consistencia'},
-    {'n': 'esquema_actual_vs_cv', 'd': 'CV suprimida con esquema potencialmente incorrecto', 'c': ['esquema_actual', 'carga_viral', 'fecha_resultado'], 'p': 'media', 'cat': 'consistencia'},
-    {'n': 'gestante_inconsistente', 'd': 'Gestante (sexo femenino, edad gestacional presente) sin PG', 'c': ['sexo_biologico', 'edad_gestacional', 'poblacion_clave'], 'p': 'alta', 'cat': 'consistencia'},
+    {'n': 'nombres_similares', 'd': 'Pacientes cuyo nombre completo (nombres + apellidos) tiene alta similitud fonética con otro paciente, lo que sugiere posibles duplicados por error de tipeo o variaciones ortográficas.', 'c': ['nombres', 'apellido_paterno', 'apellido_materno'], 'p': 'alta', 'cat': 'duplicados'},
+    {'n': 'duplicados_nombres', 'd': 'Dos o más registros comparten exactamente el mismo nombre y apellidos. Pueden ser duplicados reales que requieren fusión o verificación documentaria.', 'c': ['nombres', 'apellido_paterno', 'apellido_materno'], 'p': 'alta', 'cat': 'duplicados'},
+    {'n': 'documentos_duplicados', 'd': 'Un mismo número de documento aparece registrado con dos tipos de documento diferentes (ej: DNI y carnet de extranjería con el mismo número). Inconsistencia que impide identificar unívocamente al paciente.', 'c': ['tipo_documento', 'numero_documento'], 'p': 'alta', 'cat': 'duplicados'},
+    {'n': 'documentos_incorrectos', 'd': 'El número de documento no cumple con la longitud esperada según su tipo: DNI = 8 dígitos, Carné de Extranjería = 9, Pasaporte = 8-10, DI Extranjero = 8-12.', 'c': ['tipo_documento', 'numero_documento'], 'p': 'alta', 'cat': 'consistencia'},
+    {'n': 'extranjeros_peru', 'd': 'Paciente con tipo de documento de extranjero (carné de extranjería, pasaporte o DI extranjero) pero con país de origen registrado como Perú. Inconsistencia que debe corregirse.', 'c': ['tipo_documento', 'pais_origen'], 'p': 'media', 'cat': 'consistencia'},
+    {'n': 'tipo_doc_vacio', 'd': 'El tipo de documento del paciente no ha sido especificado. Es un campo obligatorio para la identificación del paciente en el sistema.', 'c': ['tipo_documento'], 'p': 'alta', 'cat': 'completitud'},
+    {'n': 'pacientes_nuevos_incorrectos', 'd': 'Paciente con una sola atención registrada pero su condición no está marcada como "Nuevo". Según la lógica del módulo TAR, si solo tiene un registro debería ser condición Nuevo.', 'c': ['condicion', 'paciente_id'], 'p': 'alta', 'cat': 'reporte'},
+    {'n': 'continuadores_incorrectos', 'd': 'Paciente marcado como "Continuador" pero tiene menos de 2 atenciones registradas. Un continuador debe tener al menos una atención previa.', 'c': ['condicion', 'atenciones'], 'p': 'alta', 'cat': 'reporte'},
+    {'n': 'derivados_sin_fecha', 'd': 'Registro con condición "Derivado" pero sin fecha de derivación, o con fecha de derivación pero sin la condición correspondiente. Ambas deben ir juntas.', 'c': ['condicion', 'fecha_derivacion'], 'p': 'media', 'cat': 'consistencia'},
+    {'n': 'abandono_incorrecto', 'd': 'Registro que tiene fecha de abandono o fecha de recuperación de abandono pero la condición del paciente no está marcada como "Abandono". Datos huérfanos sin coherencia.', 'c': ['condicion', 'fecha_abandono', 'fecha_recuperacion_abandono'], 'p': 'alta', 'cat': 'consistencia'},
+    {'n': 'abandono_por_fecha_proxima_cita', 'd': 'Paciente activo (no marcado como abandono) pero su fecha de próxima cita está vencida o ausente. Señal de alerta para posible abandono no registrado.', 'c': ['condicion', 'fecha_proxima_cita', 'fecha_abandono', 'fecha_recuperacion_abandono'], 'p': 'alta', 'cat': 'abandono'},
+    {'n': 'fallecidos_sin_fecha', 'd': 'Registro con condición "Fallecido" pero sin fecha de fallecimiento. Dato crítico faltante para el análisis de mortalidad.', 'c': ['condicion', 'fecha_fallecimiento'], 'p': 'alta', 'cat': 'completitud'},
+    {'n': 'fechas_nacimiento_sospechosas', 'd': 'Paciente peruano con fecha de nacimiento anterior a 1920 o posterior a 2010. Edad improbable que puede indicar error de registro.', 'c': ['fecha_nacimiento', 'pais_origen'], 'p': 'media', 'cat': 'consistencia'},
+    {'n': 'extranjeros_fechas_sospechosas', 'd': 'Paciente extranjero con fecha de nacimiento anterior a 1920 o posterior a 2010. Edad improbable que puede indicar error de registro.', 'c': ['fecha_nacimiento', 'pais_origen'], 'p': 'media', 'cat': 'consistencia'},
+    {'n': 'nacimiento_posterior_tar', 'd': 'La fecha de nacimiento del paciente es posterior a la fecha de inicio de su tratamiento TAR. Esto es imposible cronológicamente y debe corregirse.', 'c': ['fecha_nacimiento', 'fecha_inicio_tar'], 'p': 'critica', 'cat': 'consistencia'},
+    {'n': 'sexo_no_definido', 'd': 'El sexo biológico del paciente está en blanco, es nulo o tiene un valor no reconocido (ej: N/D). Campo obligatorio para el registro.', 'c': ['sexo_biologico'], 'p': 'alta', 'cat': 'completitud'},
+    {'n': 'poblacion_incoherente', 'd': 'La población clave registrada no es coherente con el sexo biológico del paciente. Ej: mujer con HSH, hombre con gestante, o menor de 15 años con TS/TRA.', 'c': ['sexo_biologico', 'poblacion_clave'], 'p': 'alta', 'cat': 'consistencia'},
+    {'n': 'pais_vacio', 'd': 'El país de origen del paciente no ha sido especificado. Aunque es un campo de baja criticidad, su ausencia afecta reportes epidemiológicos.', 'c': ['pais_origen'], 'p': 'baja', 'cat': 'completitud'},
+    {'n': 'edad_gestacional_incorrecta', 'd': 'Edad gestacional fuera del rango esperado (7 a 40 semanas). Puede ser un error de captura o de unidad de medida.', 'c': ['edad_gestacional'], 'p': 'media', 'cat': 'consistencia'},
+    {'n': 'inicio_tar_antes_2004', 'd': 'Fecha de inicio de TAR anterior al año 2004. El programa TAR en Perú inició en 2004, por lo que fechas previas son inconsistentes.', 'c': ['fecha_inicio_tar'], 'p': 'media', 'cat': 'consistencia'},
+    {'n': 'primer_esquema_vacio', 'd': 'El primer esquema de tratamiento del paciente no está registrado. Es necesario para conocer el esquema con el que inició TAR.', 'c': ['primer_esquema'], 'p': 'alta', 'cat': 'completitud'},
+    {'n': 'fecha_esquema_actual_vacia', 'd': 'La fecha del esquema de tratamiento actual está vacía. Se requiere para determinar el tiempo con el esquema vigente.', 'c': ['fecha_esquema_actual'], 'p': 'alta', 'cat': 'completitud'},
+    {'n': 'tar_posterior_esquema', 'd': 'La fecha de inicio de TAR es posterior a la fecha del esquema actual. Esto indica que el esquema actual se registró antes de iniciar el tratamiento.', 'c': ['fecha_inicio_tar', 'fecha_esquema_actual'], 'p': 'alta', 'cat': 'consistencia'},
+    {'n': 'esquemas_incorrectos', 'd': 'El esquema actual registrado no corresponde al esquema que debería tener según su fecha de inicio TAR. Posible error en la asignación del esquema.', 'c': ['esquema_actual', 'fecha_inicio_tar'], 'p': 'alta', 'cat': 'consistencia'},
+    {'n': 'fallecimiento_mayor_100', 'd': 'Paciente fallecido cuya edad calculada al momento del fallecimiento supera los 100 años. Edad biológica improbable.', 'c': ['fecha_fallecimiento', 'fecha_nacimiento'], 'p': 'media', 'cat': 'consistencia'},
+    {'n': 'abandono_mayor_100', 'd': 'Paciente que abandonó tratamiento con edad calculada mayor a 100 años. Edad biológica improbable.', 'c': ['fecha_abandono', 'fecha_nacimiento'], 'p': 'media', 'cat': 'consistencia'},
+    {'n': 'recuperacion_posterior_fallecimiento', 'd': 'La fecha de recuperación de abandono es posterior a la fecha de fallecimiento del paciente. Es imposible recuperarse del abandono después de fallecer.', 'c': ['fecha_recuperacion_abandono', 'fecha_fallecimiento'], 'p': 'critica', 'cat': 'consistencia'},
+    {'n': 'ultimo_cv_anterior_tar', 'd': 'La fecha de la carga viral basal es anterior a la fecha de inicio de TAR. La CV basal debería tomarse antes o al iniciar el tratamiento.', 'c': ['fecha_cv_basal', 'fecha_inicio_tar'], 'p': 'alta', 'cat': 'consistencia'},
+    {'n': 'ultimo_esquema_actual_vacio', 'd': 'El campo de esquema actual está vacío. Se desconoce qué tratamiento ARV está recibiendo el paciente actualmente.', 'c': ['esquema_actual'], 'p': 'alta', 'cat': 'completitud'},
+    {'n': 'fecha_posterior_hoy', 'd': 'Una o más fechas del registro (nacimiento, inicio TAR, fallecimiento, abandono, derivación, esquema, CV, próxima cita) son posteriores a la fecha actual. Esto es cronológicamente imposible.', 'c': ['fecha_nacimiento', 'fecha_inicio_tar', 'fecha_fallecimiento', 'fecha_abandono', 'fecha_derivacion', 'fecha_recuperacion_abandono', 'fecha_esquema_actual', 'fecha_cv_basal', 'fecha_proxima_cita', 'fecha_ultimo_cv'], 'p': 'alta', 'cat': 'consistencia'},
+    {'n': 'esquema_actual_vs_cv', 'd': 'Paciente con carga viral suprimida (<1000 copias) pero con un esquema de tratamiento que no corresponde a un esquema de primera línea o potenciado. Posible error en el registro del esquema o de la CV.', 'c': ['esquema_actual', 'ultimo_cv', 'fecha_ultimo_cv'], 'p': 'media', 'cat': 'consistencia'},
+    {'n': 'gestante_inconsistente', 'd': 'Paciente con sexo biológico femenino y edad gestacional registrada (embarazada), pero su población clave no incluye "Gestante" (PG).', 'c': ['sexo_biologico', 'edad_gestacional', 'poblacion_clave'], 'p': 'alta', 'cat': 'consistencia'},
 ]
 
 # Funciones de verificacion (planas, sin decoradores)
@@ -228,25 +228,25 @@ def _abandono_incorrecto(df):
 
 # Abandono por próxima cita
 
-def _abandono_por_prox_cita(df):
+def _abandono_por_fecha_proxima_cita(df):
     
     hoy = date.today()
     df = df.copy()
-    if 'prox_cita' in df.columns:
-        df['prox_cita'] = pd.to_datetime(df['prox_cita'], errors='coerce')
+    if 'fecha_proxima_cita' in df.columns:
+        df['fecha_proxima_cita'] = pd.to_datetime(df['fecha_proxima_cita'], errors='coerce')
     base = df[~df['condicion'].str.upper().isin(['FALLECIDO','DERIVADO','ABANDONO'])].copy()
     sin_recup = base['fecha_recuperacion_abandono'].isna()
-    sin_cita = base['prox_cita'].isna()
-    con_cita = base['prox_cita'].notna()
+    sin_cita = base['fecha_proxima_cita'].isna()
+    con_cita = base['fecha_proxima_cita'].notna()
     # Diferencia en dias vectorizada
-    dias_vencidos = (pd.Timestamp.now().normalize() - base['prox_cita']).dt.days
+    dias_vencidos = (pd.Timestamp.now().normalize() - base['fecha_proxima_cita']).dt.days
     vencida_larga = con_cita & (dias_vencidos > 30)
     sospechosos = base[(sin_cita | vencida_larga) & sin_recup].copy()
     # Clasificacion vectorizada
     sospechosos['_alerta_abandono'] = 'CRÍTICO: Sin próxima cita'
-    mask_con_cita = sospechosos['prox_cita'].notna()
-    sospechosos.loc[mask_con_cita, '_alerta_abandono'] = 'ALTO: ' + (pd.Timestamp.now().normalize() - sospechosos.loc[mask_con_cita, 'prox_cita']).dt.days.astype(str) + ' días sin cita'
-    return anotar_inconsistencia(sospechosos, ['condicion','prox_cita','fecha_abandono'],
+    mask_con_cita = sospechosos['fecha_proxima_cita'].notna()
+    sospechosos.loc[mask_con_cita, '_alerta_abandono'] = 'ALTO: ' + (pd.Timestamp.now().normalize() - sospechosos.loc[mask_con_cita, 'fecha_proxima_cita']).dt.days.astype(str) + ' días sin cita'
+    return anotar_inconsistencia(sospechosos, ['condicion','fecha_proxima_cita','fecha_abandono'],
                                  "Posible abandono por cita vencida/ausente")
 
 def _fallecidos_sin_fecha(df):
@@ -387,15 +387,15 @@ def _recuperacion_posterior_fallecimiento(df):
     return anotar_inconsistencia(d, ['fecha_recuperacion_abandono','fecha_fallecimiento'],
                                  "Recuperación posterior a fallecimiento")
 
-def _carga_viral_anterior_tar(df):
-    d = df[df['fecha_resultado_cv_basal'].notna() & df['fecha_inicio_tar'].notna()
-           & (df['fecha_resultado_cv_basal'] < df['fecha_inicio_tar'])]
-    return anotar_inconsistencia(d, ['fecha_resultado_cv_basal','fecha_inicio_tar'],
+def _ultimo_cv_anterior_tar(df):
+    d = df[df['fecha_cv_basal'].notna() & df['fecha_inicio_tar'].notna()
+           & (df['fecha_cv_basal'] < df['fecha_inicio_tar'])]
+    return anotar_inconsistencia(d, ['fecha_cv_basal','fecha_inicio_tar'],
                                  "CV anterior a inicio TAR")
 
-def _ultimo_esquema_vacio(df):
-    return anotar_inconsistencia(df[df['ultimo_cambio_esquema'].isna()],
-                                 ['ultimo_cambio_esquema'],
+def _ultimo_esquema_actual_vacio(df):
+    return anotar_inconsistencia(df[df['esquema_actual'].isna()],
+                                 ['esquema_actual'],
                                  "Último cambio de esquema no especificado")
 
 # Fechas posteriores a hoy
@@ -420,20 +420,20 @@ def _fecha_posterior_hoy(df):
 
 def _esquema_actual_vs_cv(df):
     
-    if 'carga_viral' not in df.columns:
+    if 'fecha_cv_basal' not in df.columns:
         return pd.DataFrame()
     df = df.copy()
-    if 'fecha_resultado' in df.columns:
-        df['fecha_resultado'] = pd.to_datetime(df['fecha_resultado'], errors='coerce')
+    if 'fecha_ultimo_cv' in df.columns:
+        df['fecha_ultimo_cv'] = pd.to_datetime(df['fecha_ultimo_cv'], errors='coerce')
     drogas_descontinuadas = 'DDI|D4T|IDV'
     d = df[
         df['esquema_actual'].str.contains(drogas_descontinuadas, na=False, regex=True)
-        & (df['carga_viral'].notna())
+        & (df['ultimo_cv'].notna())
     ]
     # Si tenemos resultado de CV numérica, filtrar suprimidas < 1000
-    if pd.api.types.is_numeric_dtype(d['carga_viral']):
-        d = d[d['carga_viral'] < 1000]
-    return anotar_inconsistencia(d, ['esquema_actual','carga_viral','fecha_resultado'],
+    if pd.api.types.is_numeric_dtype(d['ultimo_cv']):
+        d = d[d['ultimo_cv'] < 1000]
+    return anotar_inconsistencia(d, ['esquema_actual','ultimo_cv','fecha_ultimo_cv'],
                                  "CV suprimida con esquema descontinuado")
 
 # Gestante sin población clave PG
@@ -464,7 +464,7 @@ _FN_MAP = {
     'continuadores_incorrectos': _continuadores_incorrectos,
     'derivados_sin_fecha': _derivados_sin_fecha,
     'abandono_incorrecto': _abandono_incorrecto,
-    'abandono_por_prox_cita': _abandono_por_prox_cita,
+    'abandono_por_fecha_proxima_cita': _abandono_por_fecha_proxima_cita,
     'fallecidos_sin_fecha': _fallecidos_sin_fecha,
     'fechas_nacimiento_sospechosas': _fechas_nacimiento_sospechosas,
     'extranjeros_fechas_sospechosas': _extranjeros_fechas_sospechosas,
@@ -481,8 +481,8 @@ _FN_MAP = {
     'fallecimiento_mayor_100': _fallecimiento_mayor_100,
     'abandono_mayor_100': _abandono_mayor_100,
     'recuperacion_posterior_fallecimiento': _recuperacion_posterior_fallecimiento,
-    'carga_viral_anterior_tar': _carga_viral_anterior_tar,
-    'ultimo_esquema_vacio': _ultimo_esquema_vacio,
+    'ultimo_cv_anterior_tar': _ultimo_cv_anterior_tar,
+    'ultimo_esquema_actual_vacio': _ultimo_esquema_actual_vacio,
     'fecha_posterior_hoy': _fecha_posterior_hoy,
     'esquema_actual_vs_cv': _esquema_actual_vs_cv,
     'gestante_inconsistente': _gestante_inconsistente,
@@ -517,7 +517,7 @@ class AnalizadorCalidadDatos:
             raise ValueError("Archivo vacío (0 registros)")
         # Renombrar columnas legacy
         rename_map = {
-            'esquema_tratamiento_actual': 'ultimo_cambio_esquema',
+            'esquema_tratamiento_actual': 'esquema_actual',
             'fecha_esquema_tratamiento': 'fecha_esquema_actual',
         }
         for old, new in rename_map.items():
