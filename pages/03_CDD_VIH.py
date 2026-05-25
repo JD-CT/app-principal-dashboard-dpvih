@@ -90,29 +90,28 @@ if archivo:
             col3.metric('Críticos', criticos)
             col4.metric('Alta prioridad', altos)
 
-            # Construir Excel completo en memoria (todas las hojas del CDD)
-            import openpyxl
-            wb_tmp = openpyxl.load_workbook(ruta_reporte)
-            hojas = wb_tmp.sheetnames
-
-            buf = BytesIO()
-            wb_tmp.save(buf)
-            buf.seek(0)
+            # Leer el Excel generado por el CDD como bytes
+            with open(ruta_reporte, 'rb') as f:
+                excel_bytes = f.read()
 
             st.download_button(
                 label='📥 Descargar Excel completo (.xlsx)',
-                data=buf,
+                data=excel_bytes,
                 file_name=os.path.basename(ruta_reporte),
                 mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 type='primary',
+                use_container_width=True,
             )
+
+            # Mostrar que hojas contiene (sin recargar el Excel completo)
+            hojas = [s for s in analizador._sheets if hasattr(analizador, '_sheets')] or []
 
             with st.expander(f'📑 Hojas del reporte ({len(hojas)} en total)'):
                 for h in hojas:
                     icon = '📊' if h.startswith('Resumen') else ('⏱️' if h.startswith('Tiempo') else '📋')
                     st.markdown(f'{icon} **{h}**')
 
-            st.success(f'Reporte generado: {os.path.basename(ruta_reporte)} — {len(hojas)} hojas')
+            st.success(f'Reporte generado: {os.path.basename(ruta_reporte)}')
 
         except Exception as e:
             st.error(f'Error al ejecutar CDD: {e}')

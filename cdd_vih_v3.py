@@ -755,8 +755,9 @@ class AnalizadorCalidadDatos:
                 max_len = max(len(str(c.value or '')) for c in col[:50])
                 ws_det.column_dimensions[col[0].column_letter].width = min(max_len + 2, 50)
 
+        self._sheets = wb.sheetnames
         wb.save(nombre_archivo)
-        log.info(f"Reporte: {nombre_archivo}")
+        log.info(f"Reporte: {nombre_archivo} — hojas: {len(self._heets)}")
         return nombre_archivo
 
 # CLI
