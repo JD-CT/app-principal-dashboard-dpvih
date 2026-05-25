@@ -75,6 +75,43 @@ def anotar_inconsistencia(df_resultado, columnas,
     df_resultado.insert(0, 'Inconsistencia', descripcion)
     return df_resultado
 
+# Criterios detallados para cada verificación (qué campos y reglas usa)
+
+CRITERIOS = {
+    'nombres_similares': 'Similitud fonética >= 90% entre nombre+apellidos de distintos pacientes usando rapidfuzz (token_sort_ratio). Detecta posibles duplicados con variaciones ortográficas.',
+    'duplicados_nombres': 'Agrupa pacientes por nombre+apellido paterno+apellido materno exactos. Más de un registro con el mismo nombre completo = duplicado exacto.',
+    'documentos_duplicados': 'Busca mismo numero_documento con diferente tipo_documento. Ej: mismo número como DNI y como Carné de Extranjería.',
+    'documentos_incorrectos': 'Valida longitud del número según tipo: DNI=8, CarnéExt=9, Pasaporte=8-10, DI Extranjero=8-12. Fuera de esos rangos = incorrecto.',
+    'extranjeros_peru': 'Filtra pacientes con tipo_documento de extranjero (CE/pasaporte/DI) cuyo pais_origen = Perú. Inconsistencia lógica.',
+    'tipo_doc_vacio': 'Cuenta registros donde tipo_documento es nulo, vacío o no está en los valores esperados (DNI, CE, pasaporte, DI extranjero).',
+    'pacientes_nuevos_incorrectos': 'Pacientes con una sola atención (1 registro en BD) pero condición distinta de NUEVO. Regla de negocio: primer registro debe ser Nuevo.',
+    'continuadores_incorrectos': 'Condición=CONTINUADOR con menos de 2 atenciones registradas. No pueden ser continuadores sin atención previa.',
+    'derivados_sin_fecha': 'Condición=DERIVADO con fecha_derivacion vacía, o fecha_derivacion presente sin condición=DERIVADO. Datos inconsistentes.',
+    'abandono_incorrecto': 'Fecha_abandono o fecha_recuperacion_abandono presente pero condición != ABANDONO. Datos huérfanos.',
+    'abandono_por_fecha_proxima_cita': 'Pacientes activos (condición!=ABANDONO) con fecha_proxima_cita vencida (>30 días) o ausente. Alerta preventiva de abandono no declarado.',
+    'fallecidos_sin_fecha': 'Condición=FALLECIDO pero fecha_fallecimiento nula. Dato crítico faltante para análisis de mortalidad.',
+    'fechas_nacimiento_sospechosas': 'Peruanos con fecha_nacimiento < 1920 o > 2010. Rango etario improbable para un paciente VIH.',
+    'extranjeros_fechas_sospechosas': 'Extranjeros con fecha_nacimiento < 1920 o > 2010. Misma regla que peruanos filtrando por documento extranjero.',
+    'nacimiento_posterior_tar': 'fecha_nacimiento > fecha_inicio_tar. Imposible cronológico.',
+    'sexo_no_definido': 'sexo_biologico nulo, vacío o valor no reconocido (diferente de MASCULINO/FEMENINO). Obligatorio.',
+    'poblacion_incoherente': 'Cruza sexo_biologico vs poblacion_clave: mujer con HSH, hombre con gestante, menor 15 con TS/TRA/TTS/HTS.',
+    'pais_vacio': 'pais_origen nulo o vacío. Baja criticidad, afecta reportes epidemiológicos.',
+    'edad_gestacional_incorrecta': 'edad_gestacional fuera del rango 7-40 semanas. Incluye negativos o extremos.',
+    'inicio_tar_antes_2004': 'fecha_inicio_tar < 2004-01-01. Programa TAR empezó en 2004 en Perú.',
+    'primer_esquema_vacio': 'primer_esquema nulo o vacío. No se sabe con qué esquema inició.',
+    'fecha_esquema_actual_vacia': 'fecha_esquema_actual nula. No se puede calcular tiempo con esquema vigente.',
+    'tar_posterior_esquema': 'fecha_inicio_tar > fecha_esquema_actual. El TAR inició después del esquema actual.',
+    'esquemas_incorrectos': 'Esquema de adulto con fecha inicio < 15 años, o esquema pediátrico con edad adulta.',
+    'fallecimiento_mayor_100': 'Edad al fallecer > 100 años (fecha_fallecimiento - fecha_nacimiento).',
+    'abandono_mayor_100': 'Edad al abandonar > 100 años (fecha_abandono - fecha_nacimiento).',
+    'recuperacion_posterior_fallecimiento': 'fecha_recuperacion_abandono > fecha_fallecimiento. Imposible.',
+    'ultimo_cv_anterior_tar': 'fecha_cv_basal < fecha_inicio_tar. CV basal antes del TAR.',
+    'ultimo_esquema_actual_vacio': 'esquema_actual nulo o vacío. No se sabe qué ARV recibe.',
+    'fecha_posterior_hoy': 'Cualquier fecha del registro > fecha actual. Error cronológico.',
+    'esquema_actual_vs_cv': 'CV < 1000 copias (suprimida) con esquema no correspondiente a primera línea.',
+    'gestante_inconsistente': 'sexo=FEMENINO con edad_gestacional>0 pero poblacion_clave sin PG.',
+}
+
 # Lista plana de verificaciones (sin decoradores)
 
 VERIFICACIONES = [
@@ -565,11 +602,14 @@ class AnalizadorCalidadDatos:
             error = _campos_existen(item['c'], self.df)
             if error or fn is None:
                 self._verificaciones_omitidas.append(nombre)
+                detalle_omitido = error or f'No implementada: {nombre}'
+                titulo = item['d'].split('.')[0].strip()
                 self.resumen.append({
                     'ID': idx, 'Verificación': nombre.replace('_', ' ').title(),
                     'Categoría': item['cat'], 'Prioridad': item['p'],
                     'Registros': 0, 'Problemas': 'N/A', '%': 'N/A',
-                    'Estado': 'OMITIDO', 'Detalle': error or f'No implementada: {nombre}',
+                    'Estado': 'OMITIDO', 'Criterio': CRITERIOS.get(nombre, ''),
+                    'Descripción': item['d'], 'Detalle': detalle_omitido,
                 })
                 continue
 
@@ -586,31 +626,38 @@ class AnalizadorCalidadDatos:
                         'registros': registros_problema, 'revisados': self.total_registros,
                         'porcentaje': pct,
                     }
+                    titulo = item['d'].split('.')[0].strip()
                     self.resumen.append({
                         'ID': idx, 'Verificación': nombre.replace('_', ' ').title(),
                         'Categoría': item['cat'], 'Prioridad': item['p'],
                         'Registros': self.total_registros, 'Problemas': cant,
                         '%': f"{pct:.2f}%", 'Estado': 'OK',
-                        'Detalle': item['d'],
+                        'Criterio': CRITERIOS.get(nombre, ''),
+                        'Descripción': item['d'],
                     })
                     log.info(f"  → {cant} problemas ({pct:.2f}%) en {elapsed:.2f}s")
                 else:
+                    titulo = item['d'].split('.')[0].strip()
                     self.resumen.append({
                         'ID': idx, 'Verificación': nombre.replace('_', ' ').title(),
                         'Categoría': item['cat'], 'Prioridad': item['p'],
                         'Registros': self.total_registros, 'Problemas': 0,
                         '%': '0.00%', 'Estado': 'SIN PROBLEMAS',
-                        'Detalle': item['d'],
+                        'Criterio': CRITERIOS.get(nombre, ''),
+                        'Descripción': item['d'],
                     })
                     log.info(f"  → 0 problemas en {elapsed:.2f}s")
             except Exception as e:
                 elapsed = time.perf_counter() - t0
                 log.error(f"Error en {nombre}: {str(e)}")
+                titulo = item['d'].split('.')[0].strip()
                 self.resumen.append({
                     'ID': idx, 'Verificación': nombre.replace('_', ' ').title(),
                     'Categoría': item['cat'], 'Prioridad': item['p'],
                     'Registros': self.total_registros, 'Problemas': 'ERROR',
-                    '%': 'N/A', 'Estado': 'ERROR', 'Detalle': str(e),
+                    '%': 'N/A', 'Estado': 'ERROR',
+                    'Criterio': CRITERIOS.get(nombre, ''),
+                    'Descripción': item['d'], 'Detalle': str(e),
                 })
 
             gc.collect()
