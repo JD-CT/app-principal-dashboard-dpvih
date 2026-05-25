@@ -80,8 +80,16 @@ if archivo:
             st.subheader('📊 Métricas rápidas')
 
             total = analizador.total_registros if hasattr(analizador, 'total_registros') else 0
-            verificaciones_con_problemas = [r for r in analizador.resumen if r.get('Problemas', 0) > 0]
-            total_problemas = sum(r.get('Problemas', 0) for r in analizador.resumen)
+            def _get_num(v, default=0):
+                if isinstance(v, (int, float)):
+                    return v
+                return default
+
+            verificaciones_con_problemas = [
+                r for r in analizador.resumen
+                if _get_num(r.get('Problemas', 0)) > 0
+            ]
+            total_problemas = sum(_get_num(r.get('Problemas', 0)) for r in analizador.resumen)
 
             criticos = sum(1 for r in verificaciones_con_problemas
                            if str(r.get('Prioridad', '')).lower() == 'critica')
