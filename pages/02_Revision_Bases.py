@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # Pagina Streamlit: Revision de Bases ITS/TAR/PrEP
-# Fuente: Trama Unificada (71 columnas)
+# Fuente: Trama Unificada (73 columnas)
 # Proceso automatizado basado en "Proceso de Revision de EESS, BMU, OBC"
 # Creado: 2026-05-25
 
@@ -31,7 +31,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<div class="main-header"><h1>🔍 Revisión de Bases — ITS / TAR / PrEP</h1><p>Sube la Trama Unificada (71 columnas) para analizar calidad, brechas y vinculaciones automáticamente</p></div>', unsafe_allow_html=True)
+st.markdown('<div class="main-header"><h1>🔍 Revisión de Bases — ITS / TAR / PrEP</h1><p>Sube la Trama Unificada (73 columnas) para analizar calidad, brechas y vinculaciones automáticamente</p></div>', unsafe_allow_html=True)
 
 # ──────────────────────────
 # INFO DEL PROCESO
@@ -56,7 +56,7 @@ with st.expander("📖 ¿Cómo funciona?", expanded=False):
 archivo = st.file_uploader(
     'Selecciona el archivo Trama Unificada (.xlsx)',
     type=['xlsx', 'xls'],
-    help='Archivo generado por la consulta SQL Trama Unificada v1.6 (71 columnas)'
+    help='Archivo generado por la consulta SQL Trama Unificada v1.6 (73 columnas)'
 )
 
 if archivo:

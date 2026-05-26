@@ -3,7 +3,7 @@
 # revision_bases.py - Modulo de Revision de Bases ITS/TAR/PrEP
 # Proposito: Automatizar el proceso manual de 6 pasos descrito en
 #   "Proceso de Revision de EESS, BMU, OBC"
-# Fuente: Trama Unificada (71 columnas, 3 origenes: ITS, TAR, PrEP)
+# Fuente: Trama Unificada (73 columnas, 3 origenes: ITS, TAR, PrEP)
 # Estilo: NVIH develop (lista plana de diccionarios, sin decoradores)
 # Creado: 2026-05-25
 # Dependencias: pandas, openpyxl
@@ -434,6 +434,7 @@ class AnalizadorRevisionBases:
             (1, 10): '4472C4', (11, 16): 'FFC000',
             (17, 25): '4472C4', (26, 33): 'FFC000',
             (34, 53): 'ED7D31', (54, 73): '70AD47',
+            (74, 100): '70AD47',
         }
         font_f3 = Font(bold=True, color='FFFFFF', size=10)
         for inicio, fin in colores_f3:
