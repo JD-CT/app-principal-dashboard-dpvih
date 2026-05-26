@@ -199,7 +199,7 @@ class AnalizadorEscenarios:
     def cargar_datos(self, ruta_excel, hoja=None):
         """Carga la Trama Unificada desde Excel"""
         log.info(f"Cargando datos desde: {ruta_excel}")
-        self.df = pd.read_excel(ruta_excel, sheet_name=hoja)
+        self.df = pd.read_excel(ruta_excel, sheet_name=hoja if hoja else 0)
 
         # Mapear columnas de la trama a nombres cortos
         invertido = {v: k for k, v in TRAMA_COLUMNAS.items()}
@@ -208,15 +208,21 @@ class AnalizadorEscenarios:
         self.cols_faltantes = []
 
         for col_trama, col_corta in invertido.items():
-            if col_trama in cols_disponibles:
-                self.cols_mapeadas[col_corta] = col_trama
+            # Buscar con strip() por espacios al final
+            encontrada = None
+            for col_real in cols_disponibles:
+                if col_real.strip() == col_trama.strip():
+                    encontrada = col_real
+                    break
+            if encontrada:
+                self.cols_mapeadas[col_corta] = encontrada
             else:
                 self.cols_faltantes.append(col_trama)
 
         if self.cols_faltantes:
             log.warning(f"Columnas faltantes ({len(self.cols_faltantes)}): {self.cols_faltantes[:5]}...")
 
-        # Renombrar columnas existentes
+        # Renombrar columnas existentes (usando el nombre original de la trama)
         rename_map = {v: k for k, v in self.cols_mapeadas.items()}
         self.df = self.df.rename(columns=rename_map)
 
@@ -348,8 +354,6 @@ class AnalizadorEscenarios:
                 df_detalle.to_excel(writer, sheet_name='Detalle', index=False)
             else:
                 pd.DataFrame({
-                    'Validacion': [], 'Paso': [],
-                    'CODIGO UID': [], 'NUMERO DOCUMENTO': [],
                     'Observacion': ['Sin datos para el periodo 2026']
                 }).to_excel(writer, sheet_name='Detalle', index=False)
 
