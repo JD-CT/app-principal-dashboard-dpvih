@@ -93,9 +93,16 @@ if archivo:
                 'Estado': st.column_config.TextColumn('Estado'),
             }
 
+            # Resaltar filas de filtro (categoria) en amarillo
+            def _color_filtro(row):
+                cat = str(row.get('Categoría', ''))
+                if cat.lower() == 'filtro':
+                    return ['background-color: #FFF3CD'] * len(row)
+                return [''] * len(row)
+
             cols_show = [c for c in ['Verificación', 'Descripción', 'Problemas', 'Prioridad', 'Categoría', 'Estado'] if c in df_resumen.columns]
             st.dataframe(
-                df_resumen[cols_show],
+                df_resumen[cols_show].style.apply(_color_filtro, axis=1),
                 column_config=col_config,
                 use_container_width=True,
                 hide_index=True,
