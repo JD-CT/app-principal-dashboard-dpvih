@@ -84,9 +84,10 @@ VERIFICACIONES = [
     {
         'n': 'reactivos_sin_vinculacion',
         't': 'Reactivos VIH sin vinculacion efectiva',
-        'd': 'Pacientes con resultado REACTIVO en tamizaje VIH/Dual '
-             'pero sin un registro de vinculacion efectiva a TAR o PrEP.',
-        'c': ['resultado', 'vinculo_estado'],
+        'd': 'Pacientes con resultado REACTIVO o INCONCLUSO en tamizaje '
+             'VIH/Dual que NO aparecen registrados en TAR (eess_vih) '
+             'NI en PrEP (eess_prep).',
+        'c': ['resultado', 'eess_vih', 'eess_prep'],
         'resaltar': 'resultado',
         'p': 'critica',
         'cat': 'brecha'
@@ -184,13 +185,15 @@ def _duplicados_tamizaje(df):
 
 
 def _reactivos_sin_vinculacion(df):
-    """Reactivos VIH/Dual sin vinculacion efectiva"""
-    if 'resultado' not in df.columns or 'vinculo_estado' not in df.columns:
+    """Reactivos VIH sin vinculacion a TAR ni PrEP"""
+    if 'resultado' not in df.columns or 'eess_vih' not in df.columns or 'eess_prep' not in df.columns:
         return pd.DataFrame()
-    d = df[
-        (df['resultado'].str.upper() == 'REACTIVO') &
-        (~df['vinculo_estado'].str.upper().str.contains('EFECTIVA|EFECTIVO', na=False))
-    ]
+    # Reactivos que NO estan registrados en TAR (eess_vih nulo/vacio)
+    # NI en PrEP (eess_prep nulo/vacio)
+    reactivo = df['resultado'].str.upper().isin(['REACTIVO', 'INCONCLUSO'])
+    no_tar = df['eess_vih'].isna() | (df['eess_vih'].astype(str).str.strip() == '')
+    no_prep = df['eess_prep'].isna() | (df['eess_prep'].astype(str).str.strip() == '')
+    d = df[reactivo & no_tar & no_prep]
     return d if not d.empty else pd.DataFrame()
 
 
