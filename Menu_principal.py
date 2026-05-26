@@ -65,18 +65,15 @@ MODULOS = [
     },
 ]
 
-st.markdown(f"""
-<div class="sihce-header">
-  <div>
-    <h1>🏥 EIE — DPVIH MINSA</h1>
-    <p class="sub">Equipo de Información Estratégica</p>
-  </div>
-  <div class="info">
-    v{VERSION}<br>
-    {_hora_lima()}
-  </div>
-</div>
+st.markdown("""
+<style>
+    .main-header { background: linear-gradient(135deg, #1B3A5C, #2A5F8F); padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; }
+    .main-header h1 { color: #fff; margin: 0; font-size: 1.8rem; font-weight: 600; }
+    .main-header p { color: #B0D4F1; margin: 0.3rem 0 0 0; font-size: 0.9rem; }
+</style>
 """, unsafe_allow_html=True)
+
+st.markdown(f'<div class="main-header"><h1>🏥 EIE — DPVIH MINSA</h1><p>Equipo de Información Estratégica · v{VERSION} · {_hora_lima()}</p></div>', unsafe_allow_html=True)
 
 st.markdown("""
 <p style="font-size:13px;color:#666;margin-bottom:14px">
@@ -110,7 +107,7 @@ for i, mod in enumerate(MODULOS):
 # Footer
 st.markdown("---")
 
-st.markdown(f""""
+st.markdown(f"""
 <div class="sihce-footer">
   EIE v{VERSION} &middot; DPVIH-MINSA &middot; {_hora_lima()}
 </div>
