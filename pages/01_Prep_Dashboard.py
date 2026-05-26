@@ -47,13 +47,10 @@ if st.button("← Volver al Menú Principal", type="secondary", use_container_wi
 
 # --- CARGA ---
 st.markdown("### 📂 Cargar indicadores PrEP")
-col_archivo, col_info = st.columns([3, 1])
-
-with col_archivo:
-    archivo = st.file_uploader(
-        "Selecciona el archivo Excel generado por generar_indicadores_prep.py",
-        type=['xlsx'], label_visibility="collapsed"
-    )
+archivo = st.file_uploader(
+    "Selecciona el archivo Excel generado por generar_indicadores_prep.py",
+    type=['xlsx'], label_visibility="collapsed"
+)
 
 
 if archivo is None:
