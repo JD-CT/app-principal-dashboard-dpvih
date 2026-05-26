@@ -19,8 +19,7 @@ from config.colores import *
 from components.css_sihce import CSS_GLOBAL
 from components.kpi_card import render_kpi_row, render_kpi_doble
 
-st.set_page_config(page_title="PrEP - SIHCE", page_icon="💊",
-                   layout="wide", initial_sidebar_state="collapsed")
+
 
 st.markdown(CSS_GLOBAL, unsafe_allow_html=True)
 

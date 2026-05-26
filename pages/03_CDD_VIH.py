@@ -16,11 +16,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from cdd_vih_v3 import AnalizadorCalidadDatos
 
-st.set_page_config(
-    page_title='Calidad del Dato VIH-TAR',
-    page_icon='🩺',
-    layout='wide',
-)
+
 
 st.markdown("""
 <style>
