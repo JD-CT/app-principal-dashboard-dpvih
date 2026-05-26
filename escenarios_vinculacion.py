@@ -161,7 +161,7 @@ VALIDACIONES = [
 
 # Columnas a exportar en detalle
 COLUMNAS_DETALLE = [
-    'uid', 'num_documento', 'edad', 'sexo',
+    'uid', 'edad', 'sexo',
     'eess_its', 'tamizaje_fecha', 'tamizaje_tipo', 'tamizaje_resultado',
     'vinculo_tipo', 'vinculo_estado', 'vinculo_fecha',
     'eess_vih', 'fecha_inicio_tar', 'fecha_ultima_atencion_vih',
@@ -170,7 +170,6 @@ COLUMNAS_DETALLE = [
 
 ENCABEZADOS_EXCEL = {
     'uid': 'CODIGO UID',
-    'num_documento': 'NUMERO DOCUMENTO',
     'edad': 'EDAD',
     'sexo': 'SEXO',
     'eess_its': 'EESS ITS',
