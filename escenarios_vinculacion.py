@@ -65,21 +65,21 @@ def _tiene_valor(df, col):
 
 def _num_doc(df):
     """Obtiene el numero de documento priorizando ITS > VIH > PREP"""
-    doc = df['documento_its'].fillna('')
+    doc = df.get('documento_its', pd.Series('', index=df.index)).fillna('')
     m1 = doc.str.len() >= 7
-    doc_ok = doc.where(m1, df['documento_vih'].fillna(''))
+    doc_ok = doc.where(m1, df.get('documento_vih', pd.Series('', index=df.index)).fillna(''))
     m2 = doc_ok.str.len() >= 7
-    doc_ok = doc_ok.where(m2, df['documento_prep'].fillna(''))
+    doc_ok = doc_ok.where(m2, df.get('documento_prep', pd.Series('', index=df.index)).fillna(''))
     return doc_ok
 
 # ─── VALIDACIÓN 01: Tamizajes vinculados efectivamente ───
 def _v01_identificacion(df):
     """Paso 1: Tamizajes VIH/DUAL VIH con vinculacion efectiva"""
-    es_vih = df['tamizaje_tipo'].str.upper().str.contains('VIH', na=False)
+    es_vih = df.get('tamizaje_tipo', pd.Series('', index=df.index)).str.upper().str.contains('VIH', na=False)
     tiene_vinculo = _tiene_valor(df, 'vinculo_fecha') | _tiene_valor(df, 'vinculo_tipo')
-    # Filtrar solo tamizajes 2026
     en_anio = _en_anio(df, 'tamizaje_fecha')
-    return df[es_vih & tiene_vinculo & en_anio].copy()
+    cond = es_vih & tiene_vinculo & en_anio
+    return df[cond].copy()
 
 def _v01_validar_tar(df):
     """Paso 2: De los vinculados, validar que esten en TAR 2026"""
@@ -94,10 +94,11 @@ def _v01_validar_prep(df):
 # ─── VALIDACIÓN 02: Tamizajes sin vinculacion efectiva ───
 def _v02_identificacion(df):
     """Paso 1: Tamizajes VIH/DUAL VIH sin vinculacion efectiva"""
-    es_vih = df['tamizaje_tipo'].str.upper().str.contains('VIH', na=False)
+    es_vih = df.get('tamizaje_tipo', pd.Series('', index=df.index)).str.upper().str.contains('VIH', na=False)
     sin_vinculo = ~(_tiene_valor(df, 'vinculo_fecha') | _tiene_valor(df, 'vinculo_tipo'))
     en_anio = _en_anio(df, 'tamizaje_fecha')
-    return df[es_vih & sin_vinculo & en_anio].copy()
+    cond = es_vih & sin_vinculo & en_anio
+    return df[cond].copy()
 
 def _v02_validar_tar(df):
     """Paso 2: De los no vinculados, ver si aparecen en TAR 2026"""
@@ -232,8 +233,12 @@ class AnalizadorEscenarios:
                      'fecha_ultima_atencion_prep']:
             self.df = _get_fecha(self.df, col)
 
-        # Generar num_documento
-        self.df['num_documento'] = _num_doc(self.df)
+        # Generar num_documento (con proteccion)
+        try:
+            self.df['num_documento'] = _num_doc(self.df)
+        except Exception as e:
+            log.warning(f"No se pudo generar num_documento: {e}")
+            self.df['num_documento'] = ''
 
         log.info(f"Cargados {len(self.df)} registros con {len(self.cols_mapeadas)}/{len(TRAMA_COLUMNAS)} columnas")
         return self
