@@ -100,17 +100,7 @@ VERIFICACIONES = [
              'NI en PrEP (eess_prep).',
         'c': ['vinculo_estado', 'eess_vih', 'eess_prep'],
         'resaltar': 'vinculo_estado',
-        'p': 'alta',
-        'cat': 'brecha'
-    },
-    {
-        'n': 'reactivos_vih_sin_tar',
-        't': 'Reactivos VIH sin inicio de TAR',
-        'd': 'Paciente con resultado REACTIVO en tamizaje VIH '
-             'pero sin fecha de inicio de TAR registrada.',
-        'c': ['resultado', 'fecha_inicio_tar'],
-        'resaltar': 'resultado',
-        'p': 'critica',
+        'p': 'media',
         'cat': 'brecha'
     },
     {
@@ -120,31 +110,20 @@ VERIFICACIONES = [
              'pero no tiene ningun registro en ITS (uid no aparece en datos ITS).',
         'c': ['uid', 'fecha_tamizaje', 'condicion_vih'],
         'resaltar': 'condicion_vih',
-        'p': 'alta',
+        'p': 'media',
         'cat': 'brecha'
     },
     {
         'n': 'vinculacion_fecha_inconsistente',
-        't': 'Vinculacion con fecha anterior al tamizaje',
-        'd': 'La fecha de vinculacion es anterior a la fecha de tamizaje. '
+        't': 'Vinculacion con fecha anterior o igual al tamizaje',
+        'd': 'La fecha de vinculacion es anterior o igual a la fecha de tamizaje. '
              'No es posible vincular antes de tamizar.',
         'c': ['vinculo_fecha', 'fecha_tamizaje'],
         'resaltar': 'vinculo_fecha',
-        'p': 'alta',
+        'p': 'media',
         'cat': 'consistencia'
     },
-    {
-        'n': 'poblacion_incoherente',
-        't': 'Poblacion clave incoherente con sexo/edad',
-        'd': 'Registros donde la poblacion clave no corresponde con '
-             'el sexo biologico o la edad del paciente. '
-             'Ej: HSH con sexo Femenino, Gestante con sexo Masculino, '
-             'TS/TRA en menor de 15 anios.',
-        'c': ['sexo', 'tipo_poblacion', 'edad'],
-        'resaltar': 'tipo_poblacion',
-        'p': 'alta',
-        'cat': 'consistencia'
-    },
+
     {
         'n': 'prep_sin_tamizaje_vih_reciente',
         't': 'PrEP sin tamizaje VIH en los ultimos 3 meses',
@@ -152,7 +131,7 @@ VERIFICACIONES = [
              'tamizaje VIH es mayor a 90 dias o esta vacia.',
         'c': ['condicion_actual', 'fecha_ult_tamizaje_vih'],
         'resaltar': 'condicion_actual',
-        'p': 'alta',
+        'p': 'media',
         'cat': 'consistencia'
     },
 ]
@@ -208,17 +187,6 @@ def _vinculados_sin_padron(df):
     return d if not d.empty else pd.DataFrame()
 
 
-def _reactivos_vih_sin_tar(df):
-    """Reactivo VIH sin inicio de TAR"""
-    if 'resultado' not in df.columns or 'fecha_inicio_tar' not in df.columns:
-        return pd.DataFrame()
-    d = df[
-        (df['resultado'].str.upper() == 'REACTIVO') &
-        (df['fecha_inicio_tar'].isna() | (df['fecha_inicio_tar'] == ''))
-    ]
-    return d if not d.empty else pd.DataFrame()
-
-
 def _en_tar_sin_tamizaje_its(df):
     """En TAR pero sin tamizaje ITS"""
     if 'uid' not in df.columns or 'fecha_tamizaje' not in df.columns:
@@ -241,31 +209,8 @@ def _vinculacion_fecha_inconsistente(df):
     ].copy()
     d['_vf'] = pd.to_datetime(d['vinculo_fecha'], errors='coerce')
     d['_ft'] = pd.to_datetime(d['fecha_tamizaje'], errors='coerce')
-    d = d[d['_vf'] < d['_ft']]
+    d = d[d['_vf'] <= d['_ft']]
     d = d.drop(columns=['_vf', '_ft'], errors='ignore')
-    return d if not d.empty else pd.DataFrame()
-
-
-def _poblacion_incoherente(df):
-    """Poblacion clave vs sexo/edad"""
-    if 'sexo' not in df.columns or 'tipo_poblacion' not in df.columns:
-        return pd.DataFrame()
-    d = df.copy()
-    if 'edad' in d.columns:
-        d['edad'] = pd.to_numeric(d['edad'], errors='coerce')
-        menor = (d['edad'] < 15) & (d['tipo_poblacion'].str.upper().str.contains('TS|TRA|TRANS', na=False))
-    else:
-        menor = pd.Series(False, index=d.index)
-    hsh_mujer = (
-        (d['tipo_poblacion'].str.upper().str.contains('HSH', na=False)) &
-        (d['sexo'].str.upper().str.contains('FEMENINO|FEMENINA|MUJER', na=False))
-    )
-    gestante_hombre = (
-        (d['tipo_poblacion'].str.upper().str.contains('GESTANTE|PG|EMBARAZADA', na=False)) &
-        (d['sexo'].str.upper().str.contains('MASCULINO|HOMBRE|VARON', na=False))
-    )
-    mask = menor | hsh_mujer | gestante_hombre
-    d = d[mask]
     return d if not d.empty else pd.DataFrame()
 
 
@@ -293,11 +238,9 @@ FUNCIONES = {
     'duplicados_tamizaje': _duplicados_tamizaje,
     'reactivos_sin_vinculacion': _reactivos_sin_vinculacion,
     'vinculados_sin_padron': _vinculados_sin_padron,
-    'reactivos_vih_sin_tar': _reactivos_vih_sin_tar,
-    'en_tar_sin_tamizaje_its': _en_tar_sin_tamizaje_its,
+        'en_tar_sin_tamizaje_its': _en_tar_sin_tamizaje_its,
     'vinculacion_fecha_inconsistente': _vinculacion_fecha_inconsistente,
-    'poblacion_incoherente': _poblacion_incoherente,
-    'prep_sin_tamizaje_vih_reciente': _prep_sin_tamizaje_vih_reciente,
+        'prep_sin_tamizaje_vih_reciente': _prep_sin_tamizaje_vih_reciente,
 }
 
 
