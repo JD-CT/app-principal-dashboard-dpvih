@@ -55,15 +55,6 @@ with col_archivo:
         type=['xlsx'], label_visibility="collapsed"
     )
 
-with col_info:
-    st.markdown(f"""
-    <div style="background:#E8F0FE;border-radius:8px;padding:8px 10px;margin-top:24px">
-      <p style="font-size:10px;color:#003B6F;margin:0;line-height:1.4">
-        📌 Compatible con v2 y v3<br>
-        <small>Detección automática de columnas</small>
-      </p>
-    </div>
-    """, unsafe_allow_html=True)
 
 if archivo is None:
     st.info("⬆️ Sube un archivo Excel de indicadores PrEP para comenzar")
