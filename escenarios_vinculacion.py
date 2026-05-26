@@ -234,6 +234,9 @@ class AnalizadorEscenarios:
             self.df['uid'] = self.df['uid'].fillna(self.df['uid_alt'])
         if 'uid_alt' in self.df.columns:
             self.df = self.df.drop(columns=['uid_alt'])
+        # Garantizar columna uid siempre existente
+        if 'uid' not in self.df.columns:
+            self.df['uid'] = ''
 
         # Convertir fechas
         for col in ['tamizaje_fecha', 'vinculo_fecha', 'fecha_inicio_tar',
