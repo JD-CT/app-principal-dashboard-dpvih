@@ -13,6 +13,8 @@ import numpy as np
 from datetime import datetime
 import re
 import logging
+from openpyxl import load_workbook
+from openpyxl.styles import PatternFill
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 log = logging.getLogger(__name__)
@@ -56,11 +58,12 @@ COLUMNAS_ESPERADAS = COLUMNAS_ITS + COLUMNAS_TAR + COLUMNAS_PREP
 # ──────────────────────────────────────────────
 VERIFICACIONES = [
     {
-        'n': 'tamizajes_no_vih',
-        't': 'Tipos de tamizaje excluidos (no VIH/DVI)',
-        'd': 'Registros con tipo de tamizaje diferente a VIH o DVI (Dual VIH). '
-             'Solo VIH y DVI pasan al análisis. Los demas (HEB, SIF, DSI, HEC) '
-             'se excluyen y se resaltan en amarillo para tu conocimiento.',
+        'n': 'filtro_vih_dvi',
+        't': 'Filtro: solo registros VIH y DVI',
+        'd': 'Registros con tipo de tamizaje VIH o DVI (Dual VIH). '
+             'Se excluyen HEB (Hepatitis B), SIF (Sifilis), DSI (Dual Sifilis) '
+             'y HEC (Hepatitis C). La columna tipo_tamizaje se resalta en amarillo '
+             'en el Excel descargado.',
         'c': ['tipo_tamizaje'],
         'p': 'baja',
         'cat': 'filtro'
@@ -69,16 +72,16 @@ VERIFICACIONES = [
         'n': 'duplicados_tamizaje',
         't': 'Duplicados por UID y fecha de tamizaje',
         'd': 'Mismo paciente (UID) tamizado en la misma fecha. '
-             'Se elimina el último registro, quedándose con el primero.',
+             'Se elimina el ultimo registro, quedandose con el primero.',
         'c': ['uid', 'fecha_tamizaje'],
         'p': 'alta',
         'cat': 'duplicados'
     },
     {
         'n': 'reactivos_sin_vinculacion',
-        't': 'Reactivos VIH sin vinculación efectiva',
+        't': 'Reactivos VIH sin vinculacion efectiva',
         'd': 'Pacientes con resultado REACTIVO en tamizaje VIH/Dual '
-             'pero sin un registro de vinculación efectiva a TAR o PrEP.',
+             'pero sin un registro de vinculacion efectiva a TAR o PrEP.',
         'c': ['resultado', 'vinculo_estado'],
         'p': 'critica',
         'cat': 'brecha'
@@ -86,7 +89,7 @@ VERIFICACIONES = [
     {
         'n': 'vinculados_sin_padron',
         't': 'Vinculados que no aparecen en TAR ni PrEP',
-        'd': 'Paciente con vinculación efectiva registrada en ITS, '
+        'd': 'Paciente con vinculacion efectiva registrada en ITS, '
              'pero sin datos correspondientes en TAR (condicion_vih) '
              'ni en PrEP (condicion_actual).',
         'c': ['vinculo_estado', 'condicion_vih', 'condicion_actual'],
@@ -106,15 +109,15 @@ VERIFICACIONES = [
         'n': 'en_tar_sin_tamizaje_its',
         't': 'En TAR sin tamizaje ITS registrado',
         'd': 'Paciente que aparece en TAR (con condicion_vih y fecha_inicio_tar) '
-             'pero no tiene ningún registro en ITS (uid no aparece en datos ITS).',
+             'pero no tiene ningun registro en ITS (uid no aparece en datos ITS).',
         'c': ['uid', 'fecha_tamizaje', 'condicion_vih'],
         'p': 'alta',
         'cat': 'brecha'
     },
     {
         'n': 'vinculacion_fecha_inconsistente',
-        't': 'Vinculación con fecha anterior al tamizaje',
-        'd': 'La fecha de vinculación es anterior a la fecha de tamizaje. '
+        't': 'Vinculacion con fecha anterior al tamizaje',
+        'd': 'La fecha de vinculacion es anterior a la fecha de tamizaje. '
              'No es posible vincular antes de tamizar.',
         'c': ['vinculo_fecha', 'fecha_tamizaje'],
         'p': 'alta',
@@ -122,20 +125,20 @@ VERIFICACIONES = [
     },
     {
         'n': 'poblacion_incoherente',
-        't': 'Población clave incoherente con sexo/edad',
-        'd': 'Registros donde la población clave no corresponde con '
-             'el sexo biológico o la edad del paciente. '
+        't': 'Poblacion clave incoherente con sexo/edad',
+        'd': 'Registros donde la poblacion clave no corresponde con '
+             'el sexo biologico o la edad del paciente. '
              'Ej: HSH con sexo Femenino, Gestante con sexo Masculino, '
-             'TS/TRA en menor de 15 años.',
+             'TS/TRA en menor de 15 anios.',
         'c': ['sexo', 'tipo_poblacion', 'edad'],
         'p': 'alta',
         'cat': 'consistencia'
     },
     {
         'n': 'prep_sin_tamizaje_vih_reciente',
-        't': 'PrEP sin tamizaje VIH en los últimos 3 meses',
-        'd': 'Paciente en PrEP (con condicion_actual) cuya fecha del último '
-             'tamizaje VIH es mayor a 90 días o está vacía.',
+        't': 'PrEP sin tamizaje VIH en los ultimos 3 meses',
+        'd': 'Paciente en PrEP (con condicion_actual) cuya fecha del ultimo '
+             'tamizaje VIH es mayor a 90 dias o esta vacia.',
         'c': ['condicion_actual', 'fecha_ult_tamizaje_vih'],
         'p': 'alta',
         'cat': 'consistencia'
@@ -148,13 +151,13 @@ VERIFICACIONES = [
 CRITERIOS = {v['n']: f"Columna(s): {', '.join(v['c'])} | Prioridad: {v['p']}" for v in VERIFICACIONES}
 
 
-def _tamizajes_no_vih(df):
-    """Excluye tamizajes que NO son VIH/DVI (Dual VIH).
-    Solo VIH y DVI pasan al analisis. El resto (HEB, SIF, DSI, HEC)
-    se listan como informacion, no como error."""
+def _filtro_vih_dvi(df):
+    """Filtra solo registros VIH y DVI (Dual VIH).
+    Devuelve los que pasan el filtro para que se muestren en el reporte
+    con la columna tipo_tamizaje resaltada en amarillo."""
     if 'tipo_tamizaje' not in df.columns:
         return pd.DataFrame()
-    d = df[~df['tipo_tamizaje'].str.upper().isin(['VIH', 'DVI'])]
+    d = df[df['tipo_tamizaje'].str.upper().isin(['VIH', 'DVI'])]
     return d if not d.empty else pd.DataFrame()
 
 
@@ -169,7 +172,7 @@ def _duplicados_tamizaje(df):
 
 
 def _reactivos_sin_vinculacion(df):
-    """Reactivos VIH/Dual sin vinculación efectiva"""
+    """Reactivos VIH/Dual sin vinculacion efectiva"""
     if 'resultado' not in df.columns or 'vinculo_estado' not in df.columns:
         return pd.DataFrame()
     d = df[
@@ -205,10 +208,6 @@ def _reactivos_vih_sin_tar(df):
 def _en_tar_sin_tamizaje_its(df):
     """En TAR pero sin tamizaje ITS"""
     if 'uid' not in df.columns or 'fecha_tamizaje' not in df.columns:
-        return pd.DataFrame()
-    # Pacientes con datos TAR (condicion_vih no vacia)
-    uid_cols_vih = [c for c in df.columns if 'condicion_vih' in c or 'fecha_inicio_tar' in c]
-    if not uid_cols_vih:
         return pd.DataFrame()
     d = df[
         (df['condicion_vih'].notna()) &
@@ -276,7 +275,7 @@ def _prep_sin_tamizaje_vih_reciente(df):
 # FUNCION MAPA: nombre -> funcion
 # ──────────────────────────────────────────────
 FUNCIONES = {
-    'tamizajes_no_vih': _tamizajes_no_vih,
+    'filtro_vih_dvi': _filtro_vih_dvi,
     'duplicados_tamizaje': _duplicados_tamizaje,
     'reactivos_sin_vinculacion': _reactivos_sin_vinculacion,
     'vinculados_sin_padron': _vinculados_sin_padron,
@@ -291,25 +290,8 @@ FUNCIONES = {
 # ──────────────────────────────────────────────
 # ANALIZADOR PRINCIPAL
 # ──────────────────────────────────────────────
-def _anotar_inconsistencia(d, cols, msg):
-    """Marca las filas con problemas anotando descripción"""
-    if d.empty:
-        return d
-    d = d.copy()
-    d['_problema'] = msg
-    return d
-
-
 class AnalizadorRevisionBases:
-    """Analiza la Trama Unificada (ITS + TAR + PrEP) para Revisión de Bases"""
-
-    def __init__(self):
-        self.df = None
-        self.total_registros = 0
-        self.resumen = []
-        self.resultados = {}
-        self._v_omitidas = []
-        self.tiempos = {}
+    """Analiza la Trama Unificada (ITS + TAR + PrEP) para Revision de Bases"""
 
     MAPA_COLUMNAS = {
         'codigo_paciente': 'uid',
@@ -373,6 +355,14 @@ class AnalizadorRevisionBases:
         'fecha_de_inicio_de_prep': 'fecha_inicio_prep',
     }
 
+    def __init__(self):
+        self.df = None
+        self.total_registros = 0
+        self.resumen = []
+        self.resultados = {}
+        self._v_omitidas = []
+        self.tiempos = {}
+
     def cargar_datos(self, ruta_excel, hoja=None):
         """Carga el Excel de la Trama Unificada"""
         if hoja is None:
@@ -420,12 +410,12 @@ class AnalizadorRevisionBases:
                 self._v_omitidas.append(nombre)
                 detalle = f"Cols faltantes: {faltan}" if faltan else f"No implementada: {nombre}"
                 self.resumen.append({
-                    'ID': idx, 'Verificación': item['t'],
-                    'Categoría': item['cat'], 'Prioridad': item['p'],
+                    'ID': idx, 'Verificacion': item['t'],
+                    'Categoria': item['cat'], 'Prioridad': item['p'],
                     'Registros': self.total_registros, 'Problemas': 'N/A',
                     '%': 'N/A', 'Estado': 'OMITIDO',
                     'Criterio': CRITERIOS.get(nombre, ''),
-                    'Descripción': item['d'], 'Detalle': detalle,
+                    'Descripcion': item['d'], 'Detalle': detalle,
                 })
                 log.warning(f"  OMITIDO: {nombre} -> {detalle}")
                 continue
@@ -444,34 +434,34 @@ class AnalizadorRevisionBases:
                         'porcentaje': pct,
                     }
                     self.resumen.append({
-                        'ID': idx, 'Verificación': item['t'],
-                        'Categoría': item['cat'], 'Prioridad': item['p'],
+                        'ID': idx, 'Verificacion': item['t'],
+                        'Categoria': item['cat'], 'Prioridad': item['p'],
                         'Registros': self.total_registros, 'Problemas': cant,
                         '%': f"{pct:.2f}%", 'Estado': 'REVISAR',
                         'Criterio': CRITERIOS.get(nombre, ''),
-                        'Descripción': item['d'],
+                        'Descripcion': item['d'],
                     })
-                    log.info(f"  → {cant} problemas ({pct:.2f}%) en {elapsed:.2f}s")
+                    log.info(f"  -> {cant} problemas ({pct:.2f}%) en {elapsed:.2f}s")
                 else:
                     self.resumen.append({
-                        'ID': idx, 'Verificación': item['t'],
-                        'Categoría': item['cat'], 'Prioridad': item['p'],
+                        'ID': idx, 'Verificacion': item['t'],
+                        'Categoria': item['cat'], 'Prioridad': item['p'],
                         'Registros': self.total_registros, 'Problemas': 0,
                         '%': '0.00%', 'Estado': 'SIN PROBLEMAS',
                         'Criterio': CRITERIOS.get(nombre, ''),
-                        'Descripción': item['d'],
+                        'Descripcion': item['d'],
                     })
-                    log.info(f"  → 0 problemas en {elapsed:.2f}s")
+                    log.info(f"  -> 0 problemas en {elapsed:.2f}s")
             except Exception as e:
                 elapsed = (pd.Timestamp.now() - t0).total_seconds()
                 log.error(f"Error en {nombre}: {e}")
                 self.resumen.append({
-                    'ID': idx, 'Verificación': item['t'],
-                    'Categoría': item['cat'], 'Prioridad': item['p'],
+                    'ID': idx, 'Verificacion': item['t'],
+                    'Categoria': item['cat'], 'Prioridad': item['p'],
                     'Registros': self.total_registros, 'Problemas': 'ERROR',
                     '%': 'N/A', 'Estado': 'ERROR',
                     'Criterio': CRITERIOS.get(nombre, ''),
-                    'Descripción': item['d'], 'Detalle': str(e),
+                    'Descripcion': item['d'], 'Detalle': str(e),
                 })
 
         delta = (datetime.now() - t_total).total_seconds()
@@ -485,6 +475,7 @@ class AnalizadorRevisionBases:
 
         df_resumen = pd.DataFrame(self.resumen)
 
+        # Nota: pd.ExcelWriter con 'with' cierra y guarda automaticamente
         with pd.ExcelWriter(nombre_base, engine='openpyxl') as writer:
             # Hoja Resumen General
             total_problemas = sum(
@@ -527,12 +518,34 @@ class AnalizadorRevisionBases:
             for nombre, res in self.resultados.items():
                 registros = res.get('registros')
                 if registros is not None and isinstance(registros, pd.DataFrame) and not registros.empty:
-                    # Buscar titulo legible
                     v = next((x for x in VERIFICACIONES if x['n'] == nombre), None)
                     titulo = v['t'] if v else nombre
                     safe_titulo = re.sub(r'[\\/*?:\[\]]', '_', titulo)[:27]
                     sheet_name = f"{res['id']:02d}_{safe_titulo}"
                     registros.to_excel(writer, sheet_name=sheet_name, index=False)
 
-        log.info(f"Reporte generado: {nombre_base}")
+        # El writer se cierra automaticamente al salir del 'with'
+        # Ahora reabrimos para aplicar formato
+
+        # Resaltar columna tipo_tamizaje en amarillo en la hoja de filtro VIH/DVI
+        if 'filtro_vih_dvi' in self.resultados and 'tipo_tamizaje' in self.df.columns:
+            try:
+                wb = load_workbook(nombre_base)
+                for sheet_name in wb.sheetnames:
+                    if 'Filtro' in sheet_name or 'VIH' in sheet_name.upper():
+                        ws = wb[sheet_name]
+                        header = [ws.cell(row=1, column=c).value for c in range(1, ws.max_column + 1)]
+                        if 'tipo_tamizaje' in header:
+                            col_idx = header.index('tipo_tamizaje') + 1
+                            amarillo = PatternFill(start_color='FFFF00', end_color='FFFF00', fill_type='solid')
+                            for row in range(2, ws.max_row + 1):
+                                ws.cell(row=row, column=col_idx).fill = amarillo
+                            wb.save(nombre_base)
+                            log.info(f"Columna tipo_tamizaje resaltada en amarillo en hoja '{sheet_name}'")
+                            break
+                wb.close()
+            except Exception as e:
+                log.warning(f"No se pudo resaltar columna: {e}")
+
+        log.info(f"Reporte final: {nombre_base}")
         return nombre_base
