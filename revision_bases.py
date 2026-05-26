@@ -8,13 +8,16 @@
 # Creado: 2026-05-25
 # Dependencias: pandas, openpyxl
 
+import os
 import pandas as pd
 import numpy as np
-from datetime import datetime
+from datetime import datetime, timedelta
 import re
 import logging
+import openpyxl
 from openpyxl import load_workbook
-from openpyxl.styles import PatternFill
+from openpyxl.styles import PatternFill, Font, Alignment
+from openpyxl.utils import get_column_letter
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s [%(levelname)s] %(message)s')
 log = logging.getLogger(__name__)
@@ -158,6 +161,8 @@ VERIFICACIONES = [
 # FUNCIONES DE VERIFICACION
 # ──────────────────────────────────────────────
 CRITERIOS = {v['n']: f"Columna(s): {', '.join(v['c'])} | Prioridad: {v['p']}" for v in VERIFICACIONES}
+
+RUTA_PLANTILLA = 'Trama_Unificada_encabezados.xlsx'
 
 
 def _filtro_vih_dvi(df):
@@ -469,6 +474,82 @@ class AnalizadorRevisionBases:
         faltan = [c for c in cols if c not in self.df.columns]
         return faltan if faltan else None
 
+    def _crear_hoja_con_formato(self, ws, registros, nombre_verif):
+        """Crea hoja usando plantilla de encabezados, datos desde fila 4"""
+        # Si no hay plantilla cargada, escribir datos simple
+        if not getattr(self, '_wb_plantilla', None):
+            rename_hdr = {k: v for k, v in self.ENCABEZADOS.items() if k in registros.columns}
+            df = registros.copy()
+            if rename_hdr:
+                df = df.rename(columns=rename_hdr)
+            for r_idx, (_, row) in enumerate(df.iterrows()):
+                for c_idx, val in enumerate(row):
+                    ws.cell(row=1 + r_idx, column=c_idx + 1, value=val)
+            return ws
+
+        ws_plant = self._wb_plantilla.worksheets[0]
+        max_col = ws_plant.max_column
+
+        # Construir set de celdas que pertenecen a un merge
+        merged_cells_set = set()
+        merge_top_left = {}  # (r,c) -> (tl_r, tl_c) para cada merge
+        for mr in ws_plant.merged_cells.ranges:
+            if mr.min_row <= 3:
+                try:
+                    ws.merge_cells(start_row=mr.min_row, start_column=mr.min_col,
+                                   end_row=mr.max_row, end_column=mr.max_col)
+                except Exception:
+                    pass
+                for r in range(mr.min_row, mr.max_row + 1):
+                    for c in range(mr.min_col, mr.max_col + 1):
+                        if r == mr.min_row and c == mr.min_col:
+                            continue  # la top-left se escribe normal
+                        merged_cells_set.add((r, c))
+                    merge_top_left[(mr.min_row, mr.min_col)] = (mr.min_row, mr.min_col)
+
+        # Copiar valores y estilos de filas 1-3
+        for row in range(1, 4):
+            for col in range(1, max_col + 1):
+                if (row, col) in merged_cells_set:
+                    continue
+                src = ws_plant.cell(row=row, column=col)
+                dst = ws.cell(row=row, column=col)
+                dst.value = src.value
+                if src.has_style:
+                    try:
+                        dst.font = src.font.copy()
+                        dst.fill = src.fill.copy()
+                        dst.alignment = src.alignment.copy()
+                    except Exception:
+                        pass
+
+        # Copiar ancho de columnas
+        for col_idx in range(1, max_col + 1):
+            letter = get_column_letter(col_idx)
+            if letter in ws_plant.column_dimensions:
+                w = ws_plant.column_dimensions[letter].width
+                if w:
+                    ws.column_dimensions[letter].width = w
+
+        # Renombrar columnas a encabezados legibles
+        rename_hdr = {k: v for k, v in self.ENCABEZADOS.items() if k in registros.columns}
+        df = registros.copy()
+        if rename_hdr:
+            df = df.rename(columns=rename_hdr)
+
+        # Escribir datos desde fila 4
+        for r_idx, (_, row) in enumerate(df.iterrows()):
+            for c_idx, val in enumerate(row):
+                cell = ws.cell(row=4 + r_idx, column=c_idx + 1)
+                cell.value = val
+                try:
+                    cell.font = Font(size=10)
+                    cell.alignment = Alignment(horizontal='left', vertical='center')
+                except Exception:
+                    pass
+
+        return ws
+
     def analizar(self):
         """Ejecuta todas las verificaciones"""
         t_total = datetime.now()
@@ -565,13 +646,20 @@ class AnalizadorRevisionBases:
         return self
 
     def generar_reporte(self, nombre_base=None):
-        """Genera Excel con resultados identico al formato CDD"""
+        """Genera Excel con resultados usando plantilla de encabezados"""
         if nombre_base is None:
             nombre_base = f"Revision_Bases_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
 
         df_resumen = pd.DataFrame(self.resumen)
 
-        # Nota: pd.ExcelWriter con 'with' cierra y guarda automaticamente
+        # Cargar plantilla para copiar formato en hojas detalladas
+        try:
+            self._wb_plantilla = load_workbook(RUTA_PLANTILLA)
+        except Exception as e:
+            log.warning(f"No se pudo cargar plantilla '{RUTA_PLANTILLA}': {e}")
+            self._wb_plantilla = None
+
+        # Crear workbook base con solo resumenes
         with pd.ExcelWriter(nombre_base, engine='openpyxl') as writer:
             # Hoja Resumen General
             total_problemas = sum(
@@ -610,46 +698,36 @@ class AnalizadorRevisionBases:
             # Hoja Resumen Verificaciones
             df_resumen.to_excel(writer, sheet_name='Resumen Verificaciones', index=False)
 
-            # Hojas detalladas
-            for nombre, res in self.resultados.items():
-                registros = res.get('registros')
-                if registros is not None and isinstance(registros, pd.DataFrame) and not registros.empty:
-                    v = next((x for x in VERIFICACIONES if x['n'] == nombre), None)
-                    titulo = v['t'] if v else nombre
-                    safe_titulo = re.sub(r'[\\/*?:\[\]]', '_', titulo)[:27]
-                    sheet_name = f"{res['id']:02d}_{safe_titulo}"
-                    # Renombrar columnas a encabezados legibles
-                    df_excel = registros.copy()
-                    rename_hdr = {k: v for k, v in self.ENCABEZADOS.items() if k in df_excel.columns}
-                    if rename_hdr:
-                        df_excel = df_excel.rename(columns=rename_hdr)
-                    df_excel.to_excel(writer, sheet_name=sheet_name, index=False)
-
-        # Resaltar columna clave en amarillo para cada hoja detallada
-        amarillo = PatternFill(start_color='FFFF00', end_color='FFFF00', fill_type='solid')
+        # Cerrar para poder reabrir con openpyxl y agregar hojas con formato plantilla
+        # (Usamos openpyxl directamente para las hojas detalladas)
         wb = load_workbook(nombre_base)
+
+        # Hojas detalladas con formato de plantilla
+        amarillo = PatternFill(start_color='FFFF00', end_color='FFFF00', fill_type='solid')
         for nombre, res in self.resultados.items():
             registros = res.get('registros')
             if registros is None or not isinstance(registros, pd.DataFrame) or registros.empty:
                 continue
             v = next((x for x in VERIFICACIONES if x['n'] == nombre), None)
-            col_resaltar = v['resaltar'] if v and 'resaltar' in v else None
-            if col_resaltar is None:
-                continue
-            # Mapear nombre canonico a encabezado legible
-            col_excel = self.ENCABEZADOS.get(col_resaltar, col_resaltar)
             titulo = v['t'] if v else nombre
             safe_titulo = re.sub(r'[\\/*?:\[\]]', '_', titulo)[:27]
             sn = f"{res['id']:02d}_{safe_titulo}"
-            if sn not in wb.sheetnames:
-                continue
-            ws = wb[sn]
-            header = [ws.cell(row=1, column=c).value for c in range(1, ws.max_column + 1)]
-            if col_excel in header:
-                col_idx = header.index(col_excel) + 1
-                for row in range(2, ws.max_row + 1):
-                    ws.cell(row=row, column=col_idx).fill = amarillo
-                log.info(f"Columna '{col_excel}' resaltada en hoja '{sn}'")
+
+            # Crear hoja con formato plantilla + datos
+            ws = wb.create_sheet(title=sn)
+            self._crear_hoja_con_formato(ws, registros, nombre)
+
+            # Resaltar columna clave en amarillo
+            col_resaltar = v['resaltar'] if v and 'resaltar' in v else None
+            if col_resaltar:
+                col_excel = self.ENCABEZADOS.get(col_resaltar, col_resaltar)
+                header = [ws.cell(row=3, column=c).value for c in range(1, ws.max_column + 1)]
+                if col_excel in header:
+                    col_idx = header.index(col_excel) + 1
+                    for row in range(5, ws.max_row + 1):
+                        ws.cell(row=row, column=col_idx).fill = amarillo
+                    log.info(f"Columna '{col_excel}' resaltada en hoja '{sn}'")
+
         wb.save(nombre_base)
         wb.close()
 
