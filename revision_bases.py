@@ -524,28 +524,5 @@ class AnalizadorRevisionBases:
                     sheet_name = f"{res['id']:02d}_{safe_titulo}"
                     registros.to_excel(writer, sheet_name=sheet_name, index=False)
 
-        # El writer se cierra automaticamente al salir del 'with'
-        # Ahora reabrimos para aplicar formato
-
-        # Resaltar columna tipo_tamizaje en amarillo en la hoja de filtro VIH/DVI
-        if 'filtro_vih_dvi' in self.resultados and 'tipo_tamizaje' in self.df.columns:
-            try:
-                wb = load_workbook(nombre_base)
-                for sheet_name in wb.sheetnames:
-                    if 'Filtro' in sheet_name or 'VIH' in sheet_name.upper():
-                        ws = wb[sheet_name]
-                        header = [ws.cell(row=1, column=c).value for c in range(1, ws.max_column + 1)]
-                        if 'tipo_tamizaje' in header:
-                            col_idx = header.index('tipo_tamizaje') + 1
-                            amarillo = PatternFill(start_color='FFFF00', end_color='FFFF00', fill_type='solid')
-                            for row in range(2, ws.max_row + 1):
-                                ws.cell(row=row, column=col_idx).fill = amarillo
-                            wb.save(nombre_base)
-                            log.info(f"Columna tipo_tamizaje resaltada en amarillo en hoja '{sheet_name}'")
-                            break
-                wb.close()
-            except Exception as e:
-                log.warning(f"No se pudo resaltar columna: {e}")
-
         log.info(f"Reporte final: {nombre_base}")
         return nombre_base
