@@ -116,10 +116,6 @@ if archivo:
                 if _get_num(r.get('Cantidad', 0)) > 0
             ]
 
-            criticos = sum(1 for r in v_con_problemas
-                           if str(r.get('Prioridad', '')).lower() == 'critica')
-            altos = sum(1 for r in v_con_problemas
-                        if str(r.get('Prioridad', '')).lower() == 'alta')
             omitidas = sum(1 for r in analizador.resumen
                            if str(r.get('Estado', '')).upper() == 'OMITIDO')
             con_error = sum(1 for r in analizador.resumen
@@ -128,12 +124,11 @@ if archivo:
                 _get_num(r.get('Cantidad', 0)) for r in analizador.resumen
             )
 
-            col1, col2, col3, col4, col5 = st.columns(5)
+            col1, col2, col3, col4 = st.columns(4)
             col1.metric('Total registros', f'{total:,}')
             col2.metric('Con problemas', len(v_con_problemas))
-            col3.metric('Críticos', criticos)
-            col4.metric('Total problemas', f'{total_problemas:,}')
-            col5.metric('Omitidas / Error', f'{omitidas} / {con_error}')
+            col3.metric('Total problemas', f'{total_problemas:,}')
+            col4.metric('Omitidas / Error', f'{omitidas} / {con_error}')
 
             # ────────── BOTON DESCARGA ──────────
             try:
