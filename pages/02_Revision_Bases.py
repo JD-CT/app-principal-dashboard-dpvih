@@ -85,6 +85,7 @@ if archivo:
             st.subheader('📋 Resumen de verificaciones')
 
             col_config = {
+                'ID': st.column_config.NumberColumn('#'),
                 'Verificacion': st.column_config.TextColumn('Verificación'),
                 'Descripcion': st.column_config.TextColumn('Descripción'),
                 'Cantidad': st.column_config.NumberColumn('Cantidad'),
@@ -92,7 +93,7 @@ if archivo:
                 'Estado': st.column_config.TextColumn('Estado'),
             }
 
-            cols_show = [c for c in ['Verificacion', 'Descripcion', 'Categoria', 'Cantidad', 'Estado'] if c in df_resumen.columns]
+            cols_show = [c for c in ['ID', 'Verificacion', 'Descripcion', 'Categoria', 'Cantidad', 'Estado'] if c in df_resumen.columns]
             st.dataframe(
                 df_resumen[cols_show],
                 column_config=col_config,
