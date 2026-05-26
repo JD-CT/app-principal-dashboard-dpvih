@@ -6,13 +6,6 @@
 
 import streamlit as st
 import sys, os
-from datetime import datetime, timezone, timedelta
-
-
-def _hora_lima():
-    """Retorna la fecha/hora actual en zona horaria de Lima (UTC-5)"""
-    ahora = datetime.now(timezone(timedelta(hours=-5)))
-    return ahora.strftime('%d/%m/%Y %H:%M')
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'streamlit_app'))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -73,7 +66,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown(f'<div class="main-header"><h1>🏥 EIE — DPVIH MINSA</h1><p>Equipo de Información Estratégica · v{VERSION} · {_hora_lima()}</p></div>', unsafe_allow_html=True)
+st.markdown(f'<div class="main-header"><h1>🏥 EIE — DPVIH MINSA</h1><p>Equipo de Información Estratégica · v{VERSION}</p></div>', unsafe_allow_html=True)
 
 st.markdown("""
 <p style="font-size:13px;color:#666;margin-bottom:14px">
@@ -109,6 +102,6 @@ st.markdown("---")
 
 st.markdown(f"""
 <div class="sihce-footer">
-  EIE v{VERSION} &middot; DPVIH-MINSA &middot; {_hora_lima()}
+  EIE v{VERSION} &middot; DPVIH-MINSA
 </div>
 """, unsafe_allow_html=True)

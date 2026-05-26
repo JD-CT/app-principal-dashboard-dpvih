@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 import altair as alt
 import io, tempfile, os
-from datetime import datetime, timezone, timedelta
+from datetime import datetime
 
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -18,11 +18,6 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from config.colores import *
 from components.css_sihce import CSS_GLOBAL
 from components.kpi_card import render_kpi_row, render_kpi_doble
-
-
-def _hora_lima():
-    ahora = datetime.now(timezone(timedelta(hours=-5)))
-    return ahora.strftime('%d/%m/%Y %H:%M')
 
 
 st.set_page_config(
@@ -39,7 +34,7 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown(f'<div class="main-header"><h1>💊 Dashboard PrEP</h1><p>Equipo de Informaci&oacute;n Estrat&eacute;gica &middot; v{VERSION} &middot; {_hora_lima()}</p></div>', unsafe_allow_html=True)
+st.markdown(f'<div class="main-header"><h1>💊 Dashboard PrEP</h1><p>Equipo de Informaci&oacute;n Estrat&eacute;gica &middot; v{VERSION}</p></div>', unsafe_allow_html=True)
 
 # --- BOTON VOLVER ---
 if st.button("← Volver al Menú Principal", type="secondary", use_container_width=False):
@@ -349,7 +344,7 @@ with st.spinner("Cargando indicadores..."):
     # Footer
     st.markdown(f"""
     <div class="sihce-footer">
-      Dashboard PrEP &middot; EIE v{VERSION} &middot; {_hora_lima()}
+      Dashboard PrEP &middot; EIE v{VERSION}
       I.2: {inicios_anio:,} &middot; I.3: {activos_anio:,}
     </div>
     """, unsafe_allow_html=True)
