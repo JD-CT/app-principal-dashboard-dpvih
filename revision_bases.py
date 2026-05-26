@@ -115,10 +115,12 @@ VERIFICACIONES = [
     },
     {
         'n': 'vinculacion_fecha_inconsistente',
-        't': 'Vinculacion con fecha anterior o igual al tamizaje',
-        'd': 'La fecha de vinculacion es anterior o igual a la fecha de tamizaje. '
-             'No es posible vincular antes de tamizar.',
-        'c': ['vinculo_fecha', 'fecha_tamizaje'],
+        't': 'Vinculacion con fecha posterior al inicio de TAR o PrEP',
+        'd': 'La fecha de vinculacion registrada en ITS es mayor (posterior) '
+             'a la fecha de inicio registrada en TAR (fecha_inicio_tar) '
+             'o en PrEP (fecha_inicio_prep). '
+             'La vinculacion deberia ocurrir antes o al mismo tiempo.',
+        'c': ['vinculo_fecha', 'fecha_inicio_tar', 'fecha_inicio_prep'],
         'resaltar': 'vinculo_fecha',
         'p': 'media',
         'cat': 'consistencia'
@@ -200,20 +202,24 @@ def _en_tar_sin_tamizaje_its(df):
 
 
 def _vinculacion_fecha_inconsistente(df):
-    """Vinculacion antes del tamizaje"""
-    if 'vinculo_fecha' not in df.columns or 'fecha_tamizaje' not in df.columns:
+    """Vinculacion posterior al inicio de TAR o PrEP"""
+    if 'vinculo_fecha' not in df.columns:
         return pd.DataFrame()
-    d = df[
-        df['vinculo_fecha'].notna() &
-        df['fecha_tamizaje'].notna()
-    ].copy()
+    d = df[df['vinculo_fecha'].notna()].copy()
+    if d.empty:
+        return pd.DataFrame()
     d['_vf'] = pd.to_datetime(d['vinculo_fecha'], errors='coerce')
-    d['_ft'] = pd.to_datetime(d['fecha_tamizaje'], errors='coerce')
-    d = d[d['_vf'] <= d['_ft']]
-    d = d.drop(columns=['_vf', '_ft'], errors='ignore')
+    condicion = pd.Series(False, index=d.index)
+    if 'fecha_inicio_tar' in d.columns:
+        d['_tar'] = pd.to_datetime(d['fecha_inicio_tar'], errors='coerce')
+        condicion |= d['_vf'].notna() & d['_tar'].notna() & (d['_vf'] > d['_tar'])
+    if 'fecha_inicio_prep' in d.columns:
+        d['_prep'] = pd.to_datetime(d['fecha_inicio_prep'], errors='coerce')
+        condicion |= d['_vf'].notna() & d['_prep'].notna() & (d['_vf'] > d['_prep'])
+    d = d[condicion]
+    drop_cols = [c for c in ['_vf', '_tar', '_prep'] if c in d.columns]
+    d = d.drop(columns=drop_cols)
     return d if not d.empty else pd.DataFrame()
-
-
 def _prep_sin_tamizaje_vih_reciente(df):
     """PrEP activo sin tamizaje VIH en ultimos 3 meses"""
     if 'condicion_actual' not in df.columns or 'fecha_ult_tamizaje_vih' not in df.columns:
