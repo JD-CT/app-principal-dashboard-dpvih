@@ -409,6 +409,22 @@ class AnalizadorRevisionBases:
 
         log.info(f"Iniciando Revision de Bases sobre {self.total_registros} registros")
 
+        # Paso 1: Ejecutar filtro VIH/DVI primero (siempre)
+        log.info("  Aplicando filtro VIH/DVI antes del analisis...")
+        filtro_fn = FUNCIONES.get('filtro_vih_dvi')
+        df_filtrado = None
+        if filtro_fn and 'tipo_tamizaje' in self.df.columns:
+            df_filtrado = filtro_fn(self.df)
+        if df_filtrado is not None and len(df_filtrado) > 0:
+            log.info(f"  Filtro aplicado: {len(df_filtrado)} registros VIH/DVI de {self.total_registros} totales")
+            self.df_original = self.df.copy()
+            self.df = df_filtrado
+            self.total_filtrados = len(df_filtrado)
+        else:
+            log.info("  No se pudo aplicar filtro VIH/DVI, se trabaja con todos los registros")
+            self.df_original = None
+            self.total_filtrados = self.total_registros
+
         for idx, item in enumerate(VERIFICACIONES, 1):
             t0 = pd.Timestamp.now()
             nombre = item['n']
@@ -430,32 +446,35 @@ class AnalizadorRevisionBases:
                 continue
 
             try:
-                registros = fn(self.df)
+                # La verificacion #1 (filtro) usa df original, las demas usan df filtrado
+                df_para_verif = self.df_original if nombre == 'filtro_vih_dvi' and hasattr(self, 'df_original') and self.df_original is not None else self.df
+                registros = fn(df_para_verif)
                 elapsed = (pd.Timestamp.now() - t0).total_seconds()
                 self.tiempos[nombre] = elapsed
 
+                total_base = len(df_para_verif)
                 if registros is not None and len(registros) > 0:
                     cant = len(registros)
-                    pct = (cant / self.total_registros) * 100
+                    pct = (cant / total_base) * 100 if total_base > 0 else 0
                     self.resultados[nombre] = {
                         'id': idx, 'cantidad': cant, 'descripcion': item['d'],
-                        'registros': registros, 'revisados': self.total_registros,
+                        'registros': registros, 'revisados': total_base,
                         'porcentaje': pct,
                     }
                     self.resumen.append({
                         'ID': idx, 'Verificacion': item['t'],
                         'Categoria': item['cat'], 'Prioridad': item['p'],
-                        'Registros': self.total_registros, 'Cantidad': cant,
+                        'Registros': total_base, 'Cantidad': cant,
                         '%': f"{pct:.2f}%", 'Estado': 'REVISAR',
                         'Criterio': CRITERIOS.get(nombre, ''),
                         'Descripcion': item['d'],
                     })
-                    log.info(f"  -> {cant} problemas ({pct:.2f}%) en {elapsed:.2f}s")
+                    log.info(f"  -> {cant}/{total_base} registros ({pct:.2f}%) en {elapsed:.2f}s")
                 else:
                     self.resumen.append({
                         'ID': idx, 'Verificacion': item['t'],
                         'Categoria': item['cat'], 'Prioridad': item['p'],
-                        'Registros': self.total_registros, 'Cantidad': 0,
+                        'Registros': total_base, 'Cantidad': 0,
                         '%': '0.00%', 'Estado': 'SIN PROBLEMAS',
                         'Criterio': CRITERIOS.get(nombre, ''),
                         'Descripcion': item['d'],
