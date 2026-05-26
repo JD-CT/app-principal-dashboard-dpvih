@@ -488,7 +488,7 @@ class AnalizadorRevisionBases:
             c = colores_f3[(inicio, fin)]
             fill_rango = PatternFill(start_color=c, end_color=c, fill_type='solid')
             for col in range(inicio, min(fin, max_col) + 1):
-                cell = ws.cell(row=3, column=col)
+                cell = ws.cell(row=1, column=col)
                 cell.fill = fill_rango
                 cell.font = font_f3
                 cell.alignment = Alignment(horizontal='center', vertical='center')
