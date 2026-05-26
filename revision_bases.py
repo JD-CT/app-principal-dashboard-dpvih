@@ -95,10 +95,10 @@ VERIFICACIONES = [
     {
         'n': 'vinculados_sin_padron',
         't': 'Vinculados que no aparecen en TAR ni PrEP',
-        'd': 'Paciente con vinculacion efectiva registrada en ITS, '
-             'pero sin datos correspondientes en TAR (condicion_vih) '
-             'ni en PrEP (condicion_actual).',
-        'c': ['vinculo_estado', 'condicion_vih', 'condicion_actual'],
+        'd': 'Pacientes con estado EFECTIVA registrado en ITS '
+             'que NO aparecen en TAR (eess_vih) '
+             'NI en PrEP (eess_prep).',
+        'c': ['vinculo_estado', 'eess_vih', 'eess_prep'],
         'resaltar': 'vinculo_estado',
         'p': 'alta',
         'cat': 'brecha'
@@ -198,14 +198,13 @@ def _reactivos_sin_vinculacion(df):
 
 
 def _vinculados_sin_padron(df):
-    """Vinculacion efectiva pero sin dato en TAR ni PrEP"""
-    req = ['vinculo_estado', 'condicion_vih', 'condicion_actual']
-    if not all(c in df.columns for c in req):
+    """Vinculacion efectiva en ITS sin registro en TAR ni PrEP"""
+    if 'vinculo_estado' not in df.columns or 'eess_vih' not in df.columns or 'eess_prep' not in df.columns:
         return pd.DataFrame()
     efec = df['vinculo_estado'].str.upper().str.contains('EFECTIVA|EFECTIVO', na=False)
-    sin_tar = df['condicion_vih'].isna() | (df['condicion_vih'] == '')
-    sin_prep = df['condicion_actual'].isna() | (df['condicion_actual'] == '')
-    d = df[efec & sin_tar & sin_prep]
+    no_tar = df['eess_vih'].isna() | (df['eess_vih'].astype(str).str.strip() == '')
+    no_prep = df['eess_prep'].isna() | (df['eess_prep'].astype(str).str.strip() == '')
+    d = df[efec & no_tar & no_prep]
     return d if not d.empty else pd.DataFrame()
 
 
