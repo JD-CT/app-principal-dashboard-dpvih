@@ -364,6 +364,74 @@ class AnalizadorRevisionBases:
         'fecha_de_inicio_de_prep': 'fecha_inicio_prep',
     }
 
+    ENCABEZADOS = {
+        # ITS
+        'sector_its': 'SECTOR - ITS',
+        'diresa_its': 'DIRESA - ITS',
+        'region_its': 'REGION - ITS',
+        'provincia_its': 'PROVINCIA - ITS',
+        'distrito_its': 'DISTRITO - ITS',
+        'eess_its': 'EESS - ITS',
+        'renipres_its': 'CODIGO RENIPRES - ITS',
+        'uid': 'CODIGO UID',
+        'edad': 'PACIENTE EDAD',
+        'sexo': 'PACIENTE SEXO',
+        'tipo_poblacion': 'PACIENTE TIPO POBLACION',
+        'nacionalidad': 'NACIONALIDAD',
+        'etnia': 'ETNIA',
+        'brigada': 'BRIGADA',
+        'fecha_intervencion': 'FECHA INTERVENCION',
+        'tipo_lugar_its': 'TIPO LUGAR INTERVENCION',
+        'tipo_oferta_its': 'TIPO OFERTA',
+        'fecha_tamizaje': 'FECHA DE TAMIZAJE',
+        'tipo_tamizaje': 'TIPO TAMIZAJE',
+        'resultado': 'RESULTADO 1',
+        'fecha_reg_its': 'FECHA DE REGISTRO - ITS',
+        'fecha_mod_its': 'FECHA DE MODIFICACION - ITS',
+        'vinculo_tipo': 'TIPO DE VINCULACION',
+        'vinculo_estado': 'ESTADO DE VINCULACION',
+        'vinculo_eess_dest': 'EESS DESTINO DE VINCULACION',
+        'vinculo_fecha': 'FECHA DE VINCULACION',
+        'vinculo_fecha_reg': 'FECHA DE REGISTRO',
+        'origen_registro': 'ORIGEN DE REGISTRO',
+        # TAR
+        'sector_vih': 'SECTOR - VIH',
+        'diris_vih': 'DIRIS/DIRESA/GERESA - VIH',
+        'depto_vih': 'DEPARTAMENTO EESS - VIH',
+        'provincia_vih': 'PROVINCIA EESS - VIH',
+        'distrito_vih': 'DISTRITO EESS - VIH',
+        'eess_vih': 'ESTABLECIMIENTO DE SALUD - VIH',
+        'renipres_vih': 'CODIGO RENIPRES - VIH',
+        'condicion_vih': 'CONDICION',
+        'fecha_inicio_tar': 'FECHA DE INICIO DE TAR',
+        'fecha_ult_atencion': 'FECHA DE ULTIMA ATENCION',
+        'fecha_prox_cita': 'FECHA DE PROXIMA CITA',
+        'fecha_ult_abandono': 'FECHA DE ULTIMO ABANDONO',
+        'fecha_recup_abandono': 'FECHA DE ULTIMA RECUPERACION DE ABANDONO',
+        'fecha_derivacion': 'FECHA DE DERIVACION',
+        'lugar_derivacion': 'LUGAR DE DESTINO DE DERIVACION',
+        'fecha_creacion_vih': 'FECHA DE CREACION - VIH',
+        'fecha_mod_vih': 'FECHA DE MODIFICACION - VIH',
+        # PrEP
+        'sector_prep': 'SECTOR - PREP',
+        'diris_prep': 'DIRIS/DIRESA/GERESA - PREP',
+        'depto_prep': 'DEPARTAMENTO EESS - PREP',
+        'provincia_prep': 'PROVINCIA EESS - PREP',
+        'distrito_prep': 'DISTRITO EESS - PREP',
+        'eess_prep': 'ESTABLECIMIENTO DE SALUD - PREP',
+        'renipres_prep': 'CODIGO RENIPRES - PREP',
+        'fecha_inicio_prep': 'FECHA DE INICIO DE PREP',
+        'eess_inicio_prep': 'EESS DE INICIO PREP',
+        'modalidad_prep': 'MODALIDAD DE INICIO PREP',
+        'fecha_reingreso_prep': 'FECHA DE REINGRESO A LA PREP',
+        'condicion_actual': 'CONDICION ACTUAL',
+        'fecha_ult_atencion_prep': 'FECHA DE ULTIMA ATENCION PREP',
+        'fecha_ult_tamizaje_vih': 'FECHA DE RESULTADO ULTIMO TAMIZAJE DE VIH',
+        'resultado_ult_tamizaje_vih': 'RESULTADO ULTIMO TAMIZAJE DE VIH',
+        'fecha_creacion_prep': 'FECHA DE CREACION - PREP',
+        'fecha_mod_prep': 'FECHA DE MODIFICACION - PREP',
+    }
+
     def __init__(self):
         self.df = None
         self.total_registros = 0
@@ -550,7 +618,12 @@ class AnalizadorRevisionBases:
                     titulo = v['t'] if v else nombre
                     safe_titulo = re.sub(r'[\\/*?:\[\]]', '_', titulo)[:27]
                     sheet_name = f"{res['id']:02d}_{safe_titulo}"
-                    registros.to_excel(writer, sheet_name=sheet_name, index=False)
+                    # Renombrar columnas a encabezados legibles
+                    df_excel = registros.copy()
+                    rename_hdr = {k: v for k, v in self.ENCABEZADOS.items() if k in df_excel.columns}
+                    if rename_hdr:
+                        df_excel = df_excel.rename(columns=rename_hdr)
+                    df_excel.to_excel(writer, sheet_name=sheet_name, index=False)
 
         # Resaltar columna clave en amarillo para cada hoja detallada
         amarillo = PatternFill(start_color='FFFF00', end_color='FFFF00', fill_type='solid')
@@ -561,8 +634,10 @@ class AnalizadorRevisionBases:
                 continue
             v = next((x for x in VERIFICACIONES if x['n'] == nombre), None)
             col_resaltar = v['resaltar'] if v and 'resaltar' in v else None
-            if col_resaltar is None or col_resaltar not in registros.columns:
+            if col_resaltar is None:
                 continue
+            # Mapear nombre canonico a encabezado legible
+            col_excel = self.ENCABEZADOS.get(col_resaltar, col_resaltar)
             titulo = v['t'] if v else nombre
             safe_titulo = re.sub(r'[\\/*?:\[\]]', '_', titulo)[:27]
             sn = f"{res['id']:02d}_{safe_titulo}"
@@ -570,11 +645,11 @@ class AnalizadorRevisionBases:
                 continue
             ws = wb[sn]
             header = [ws.cell(row=1, column=c).value for c in range(1, ws.max_column + 1)]
-            if col_resaltar in header:
-                col_idx = header.index(col_resaltar) + 1
+            if col_excel in header:
+                col_idx = header.index(col_excel) + 1
                 for row in range(2, ws.max_row + 1):
                     ws.cell(row=row, column=col_idx).fill = amarillo
-                log.info(f"Columna '{col_resaltar}' resaltada en hoja '{sn}'")
+                log.info(f"Columna '{col_excel}' resaltada en hoja '{sn}'")
         wb.save(nombre_base)
         wb.close()
 
