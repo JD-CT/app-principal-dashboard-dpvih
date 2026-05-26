@@ -65,6 +65,7 @@ VERIFICACIONES = [
              'y HEC (Hepatitis C). La columna tipo_tamizaje se resalta en amarillo '
              'en el Excel descargado.',
         'c': ['tipo_tamizaje'],
+        'resaltar': 'tipo_tamizaje',
         'p': 'baja',
         'cat': 'filtro'
     },
@@ -74,6 +75,7 @@ VERIFICACIONES = [
         'd': 'Mismo paciente (UID) tamizado en la misma fecha. '
              'Se elimina el ultimo registro, quedandose con el primero.',
         'c': ['uid', 'fecha_tamizaje'],
+        'resaltar': 'uid',
         'p': 'alta',
         'cat': 'duplicados'
     },
@@ -83,6 +85,7 @@ VERIFICACIONES = [
         'd': 'Pacientes con resultado REACTIVO en tamizaje VIH/Dual '
              'pero sin un registro de vinculacion efectiva a TAR o PrEP.',
         'c': ['resultado', 'vinculo_estado'],
+        'resaltar': 'resultado',
         'p': 'critica',
         'cat': 'brecha'
     },
@@ -93,6 +96,7 @@ VERIFICACIONES = [
              'pero sin datos correspondientes en TAR (condicion_vih) '
              'ni en PrEP (condicion_actual).',
         'c': ['vinculo_estado', 'condicion_vih', 'condicion_actual'],
+        'resaltar': 'vinculo_estado',
         'p': 'alta',
         'cat': 'brecha'
     },
@@ -102,6 +106,7 @@ VERIFICACIONES = [
         'd': 'Paciente con resultado REACTIVO en tamizaje VIH '
              'pero sin fecha de inicio de TAR registrada.',
         'c': ['resultado', 'fecha_inicio_tar'],
+        'resaltar': 'resultado',
         'p': 'critica',
         'cat': 'brecha'
     },
@@ -111,6 +116,7 @@ VERIFICACIONES = [
         'd': 'Paciente que aparece en TAR (con condicion_vih y fecha_inicio_tar) '
              'pero no tiene ningun registro en ITS (uid no aparece en datos ITS).',
         'c': ['uid', 'fecha_tamizaje', 'condicion_vih'],
+        'resaltar': 'condicion_vih',
         'p': 'alta',
         'cat': 'brecha'
     },
@@ -120,6 +126,7 @@ VERIFICACIONES = [
         'd': 'La fecha de vinculacion es anterior a la fecha de tamizaje. '
              'No es posible vincular antes de tamizar.',
         'c': ['vinculo_fecha', 'fecha_tamizaje'],
+        'resaltar': 'vinculo_fecha',
         'p': 'alta',
         'cat': 'consistencia'
     },
@@ -131,6 +138,7 @@ VERIFICACIONES = [
              'Ej: HSH con sexo Femenino, Gestante con sexo Masculino, '
              'TS/TRA en menor de 15 anios.',
         'c': ['sexo', 'tipo_poblacion', 'edad'],
+        'resaltar': 'tipo_poblacion',
         'p': 'alta',
         'cat': 'consistencia'
     },
@@ -140,6 +148,7 @@ VERIFICACIONES = [
         'd': 'Paciente en PrEP (con condicion_actual) cuya fecha del ultimo '
              'tamizaje VIH es mayor a 90 dias o esta vacia.',
         'c': ['condicion_actual', 'fecha_ult_tamizaje_vih'],
+        'resaltar': 'condicion_actual',
         'p': 'alta',
         'cat': 'consistencia'
     },
@@ -523,6 +532,32 @@ class AnalizadorRevisionBases:
                     safe_titulo = re.sub(r'[\\/*?:\[\]]', '_', titulo)[:27]
                     sheet_name = f"{res['id']:02d}_{safe_titulo}"
                     registros.to_excel(writer, sheet_name=sheet_name, index=False)
+
+        # Resaltar columna clave en amarillo para cada hoja detallada
+        amarillo = PatternFill(start_color='FFFF00', end_color='FFFF00', fill_type='solid')
+        wb = load_workbook(nombre_base)
+        for nombre, res in self.resultados.items():
+            registros = res.get('registros')
+            if registros is None or not isinstance(registros, pd.DataFrame) or registros.empty:
+                continue
+            v = next((x for x in VERIFICACIONES if x['n'] == nombre), None)
+            col_resaltar = v['resaltar'] if v and 'resaltar' in v else None
+            if col_resaltar is None or col_resaltar not in registros.columns:
+                continue
+            titulo = v['t'] if v else nombre
+            safe_titulo = re.sub(r'[\\/*?:\[\]]', '_', titulo)[:27]
+            sn = f"{res['id']:02d}_{safe_titulo}"
+            if sn not in wb.sheetnames:
+                continue
+            ws = wb[sn]
+            header = [ws.cell(row=1, column=c).value for c in range(1, ws.max_column + 1)]
+            if col_resaltar in header:
+                col_idx = header.index(col_resaltar) + 1
+                for row in range(2, ws.max_row + 1):
+                    ws.cell(row=row, column=col_idx).fill = amarillo
+                log.info(f"Columna '{col_resaltar}' resaltada en hoja '{sn}'")
+        wb.save(nombre_base)
+        wb.close()
 
         log.info(f"Reporte final: {nombre_base}")
         return nombre_base
