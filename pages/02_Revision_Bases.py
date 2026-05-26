@@ -17,7 +17,11 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from revision_bases import AnalizadorRevisionBases
 
-
+st.set_page_config(
+    page_title='Revisión de Bases - ITS/TAR/PrEP',
+    page_icon='🔍',
+    layout='wide',
+)
 
 st.markdown("""
 <style>
