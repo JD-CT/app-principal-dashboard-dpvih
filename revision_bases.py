@@ -62,11 +62,10 @@ COLUMNAS_ESPERADAS = COLUMNAS_ITS + COLUMNAS_TAR + COLUMNAS_PREP
 VERIFICACIONES = [
     {
         'n': 'filtro_vih_dvi',
-        't': 'Filtro: solo registros VIH y DVI',
-        'd': 'Registros con tipo de tamizaje VIH o DVI (Dual VIH). '
-             'Se excluyen HEB (Hepatitis B), SIF (Sifilis), DSI (Dual Sifilis) '
-             'y HEC (Hepatitis C). La columna tipo_tamizaje se resalta en amarillo '
-             'en el Excel descargado.',
+        't': 'Filtro: solo registros tamizaje VIH y DVI',
+        'd': 'Muestra los registros cuyo tipo de tamizaje es VIH o DVI. '
+             'Se excluyen HEB (Hepatitis B), SIF (Sifilis), DSI y HEC (Hepatitis C). '
+             'Estos registros filtrados son la base para todas las verificaciones.',
         'c': ['tipo_tamizaje'],
         'resaltar': 'tipo_tamizaje',
         'p': 'baja',
@@ -74,8 +73,10 @@ VERIFICACIONES = [
     },
     {
         'n': 'duplicados_tamizaje',
-        't': 'Duplicados por UID',
-        'd': 'Identifica registros con mismo UID duplicado',
+        't': 'Duplicados de paciente por UID repetido',
+        'd': 'Detecta registros duplicados donde un mismo paciente (UID) '
+             'aparece mas de una vez. Se debe conservar un solo registro '
+             'por paciente, eliminando las copias.',
         'c': ['uid'],
         'resaltar': 'uid',
         'p': 'media',
@@ -83,10 +84,11 @@ VERIFICACIONES = [
     },
     {
         'n': 'reactivos_sin_vinculacion',
-        't': 'Reactivos VIH sin vinculacion efectiva',
-        'd': 'Pacientes con resultado REACTIVO o INCONCLUSO en tamizaje '
-             'VIH/Dual que NO aparecen registrados en TAR (eess_vih) '
-             'NI en PrEP (eess_prep).',
+        't': 'Reactivos VIH sin registro en TAR ni PrEP',
+        'd': 'Pacientes con resultado REACTIVO o INCONCLUSO que no estan '
+             'registrados en TAR (ESTABLECIMIENTO DE SALUD - VIH vacio) '
+             'ni en PrEP (ESTABLECIMIENTO DE SALUD - PREP vacio). '
+             'Requieren vinculacion inmediata a uno de los dos modulos.',
         'c': ['resultado', 'eess_vih', 'eess_prep'],
         'resaltar': 'resultado',
         'p': 'critica',
@@ -94,10 +96,11 @@ VERIFICACIONES = [
     },
     {
         'n': 'vinculados_sin_padron',
-        't': 'Vinculados que no aparecen en TAR ni PrEP',
-        'd': 'Pacientes con estado EFECTIVA registrado en ITS '
-             'que NO aparecen en TAR (eess_vih) '
-             'NI en PrEP (eess_prep).',
+        't': 'Vinculacion efectiva sin respaldo en TAR ni PrEP',
+        'd': 'Pacientes con estado EFECTIVA registrado en el modulo ITS, '
+             'pero que no aparecen en TAR (ESTABLECIMIENTO DE SALUD - VIH vacio) '
+             'ni en PrEP (ESTABLECIMIENTO DE SALUD - PREP vacio). '
+             'La vinculacion deberia reflejarse en al menos un modulo.',
         'c': ['vinculo_estado', 'eess_vih', 'eess_prep'],
         'resaltar': 'vinculo_estado',
         'p': 'media',
@@ -115,11 +118,11 @@ VERIFICACIONES = [
     },
     {
         'n': 'vinculacion_fecha_inconsistente',
-        't': 'Vinculacion con fecha posterior al inicio de TAR o PrEP',
-        'd': 'La fecha de vinculacion registrada en ITS es mayor (posterior) '
-             'a la fecha de inicio registrada en TAR (fecha_inicio_tar) '
-             'o en PrEP (fecha_inicio_prep). '
-             'La vinculacion deberia ocurrir antes o al mismo tiempo.',
+        't': 'Fecha de vinculacion posterior al inicio de TAR o PrEP',
+        'd': 'La fecha de vinculacion registrada en ITS es posterior '
+             'a la fecha de inicio en TAR o PrEP. Sugiere que el paciente '
+             'ya estaba en tratamiento sin vinculacion formal registrada. '
+             'La vinculacion debe ocurrir antes o el mismo dia del inicio.',
         'c': ['vinculo_fecha', 'fecha_inicio_tar', 'fecha_inicio_prep'],
         'resaltar': 'vinculo_fecha',
         'p': 'media',
@@ -128,9 +131,10 @@ VERIFICACIONES = [
 
     {
         'n': 'prep_sin_tamizaje_vih_reciente',
-        't': 'PrEP sin tamizaje VIH en los ultimos 3 meses',
-        'd': 'Paciente en PrEP (con condicion_actual) cuya fecha del ultimo '
-             'tamizaje VIH es mayor a 90 dias o esta vacia.',
+        't': 'PrEP sin tamizaje VIH en los ultimos 90 dias',
+        'd': 'Paciente registrado en PrEP cuya fecha del ultimo tamizaje VIH '
+             'supera los 90 dias o esta vacia. El protocolo exige tamizaje '
+             'VIH trimestral para todos los usuarios de PrEP.',
         'c': ['condicion_actual', 'fecha_ult_tamizaje_vih'],
         'resaltar': 'condicion_actual',
         'p': 'media',
