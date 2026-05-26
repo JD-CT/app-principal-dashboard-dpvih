@@ -531,6 +531,17 @@ class AnalizadorRevisionBases:
                     'Descripcion': item['d'], 'Detalle': str(e),
                 })
 
+        # Convertir columnas datetime a solo fecha (sin hora) en todos los resultados
+        for nombre, res in self.resultados.items():
+            registros = res.get('registros')
+            if registros is not None and isinstance(registros, pd.DataFrame) and not registros.empty:
+                for col in registros.select_dtypes(include=['datetime64']).columns:
+                    registros[col] = registros[col].dt.date
+        # Mismo para self.df
+        if hasattr(self, 'df') and self.df is not None:
+            for col in self.df.select_dtypes(include=['datetime64']).columns:
+                self.df[col] = self.df[col].dt.date
+
         delta = (datetime.now() - t_total).total_seconds()
         log.info(f"Revision completa en {delta:.2f}s")
         return self
