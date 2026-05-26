@@ -20,27 +20,26 @@ ANIO = 2026
 
 # Mapeo de columnas de la Trama Unificada v1.6 (73 col)
 TRAMA_COLUMNAS = {
-    'uid': 'CÓDIGO UID',
-    'uid_alt': 'CÓDIGO PACIENTE',
-    'documento_its': 'NÚMERO DE DOCUMENTO USUARIO ITS / BRIGADISTA',
-    'documento_vih': 'NÚMERO DE DOCUMENTO USUARIO VIH',
-    'documento_prep': 'NÚMERO DE DOCUMENTO USUARIO PREP',
+    'uid': 'CODIGO PACIENTE',
+    'documento_its': 'NUMERO DE DOCUMENTO USUARIO ITS / BRIGADISTA',
+    'documento_vih': 'NUMERO DE DOCUMENTO USUARIO VIH',
+    'documento_prep': 'NUMERO DE DOCUMENTO USUARIO PREP',
     'edad': 'PACIENTE EDAD',
     'sexo': 'PACIENTE SEXO',
     'eess_its': 'EESS - ITS',
     'tamizaje_fecha': 'FECHA DE TAMIZAJE',
     'tamizaje_tipo': 'TIPO TAMIZAJE',
     'tamizaje_resultado': 'RESULTADO 1',
-    'vinculo_tipo': 'TIPO DE VINCULACIÓN',
+    'vinculo_tipo': 'TIPO DE VINCULACION',
     'vinculo_estado': 'ESTADO DE VINCULACION',
     'vinculo_fecha': 'FECHA DE VINCULACION',
     'vinculo_eess_dest': 'EESS DESTINO DE VINCULACION',
     'eess_vih': 'ESTABLECIMIENTO DE SALUD - VIH',
     'fecha_inicio_tar': 'FECHA DE INICIO DE TAR',
-    'fecha_ultima_atencion_vih': 'FECHA DE ÚLTIMA ATENCIÓN',
+    'fecha_ultima_atencion_vih': 'FECHA DE ULTIMA ATENCION',
     'eess_prep': 'ESTABLECIMIENTO DE SALUD - PREP',
     'fecha_inicio_prep': 'FECHA DE INICIO DE PREP',
-    'fecha_ultima_atencion_prep': 'FECHA DE ÚLTIMA ATENCIÓN PREP',
+    'fecha_ultima_atencion_prep': 'FECHA DE ULTIMA ATENCION PREP',
 }
 
 def _get_fecha(df, col):
