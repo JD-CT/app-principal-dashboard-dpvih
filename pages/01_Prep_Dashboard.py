@@ -9,7 +9,7 @@ import pandas as pd
 import numpy as np
 import altair as alt
 import io, tempfile, os
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 
 import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -19,7 +19,13 @@ from config.colores import *
 from components.css_sihce import CSS_GLOBAL
 from components.kpi_card import render_kpi_row, render_kpi_doble
 
-st.set_page_config(page_title="PrEP - SIHCE", page_icon="💊",
+
+def _hora_lima():
+    ahora = datetime.now(timezone(timedelta(hours=-5)))
+    return ahora.strftime('%d/%m/%Y %H:%M')
+
+
+st.set_page_config(page_title="Dashboard PrEP - EIE", page_icon="💊",
                    layout="wide", initial_sidebar_state="collapsed")
 
 st.markdown(CSS_GLOBAL, unsafe_allow_html=True)
@@ -29,11 +35,9 @@ st.markdown(f"""
 <div class="sihce-header">
   <div>
     <h1>💊 PrEP &mdash; Indicadores</h1>
-    <p class="sub">Sistema de Informaci&oacute;n de Indicadores &middot; DPVIH-MINSA</p>
+    <p class="sub">Equipo de Informaci&oacute;n Estrat&eacute;gica</p>
   </div>
-  <div class="info">{datetime.now().strftime('%d/%m/%Y %H:%M')}<br>
-    <a href="/" style="color:rgba(255,255,255,.6);font-size:10px">← Volver al menú</a>
-  </div>
+  <div class="info">v{VERSION}<br>{_hora_lima()}</div>
 </div>
 """, unsafe_allow_html=True)
 
@@ -357,7 +361,7 @@ with st.spinner("Cargando indicadores..."):
     # Footer
     st.markdown(f"""
     <div class="sihce-footer">
-      Dashboard PrEP &middot; SIHCE v{VERSION} &middot; {datetime.now().strftime('%d/%m/%Y %H:%M')} &middot;
+      Dashboard PrEP &middot; EIE v{VERSION} &middot; {_hora_lima()} &middot;
       Archivo: {archivo.name} &middot; Padrón: {total_padron:,} &middot;
       I.2: {inicios_anio:,} &middot; I.3: {activos_anio:,}
     </div>
