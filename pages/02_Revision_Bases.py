@@ -145,8 +145,38 @@ if archivo:
                         use_container_width=True,
                     )
                     st.success(f'✅ Reporte generado: {os.path.basename(ruta_reporte)}')
-                else:
-                    st.warning('No se pudo generar el reporte.')
+
+                    # ────────── BOTON ESCENARIOS VINCULACION 2026 ──────────
+                    from escenarios_vinculacion import AnalizadorEscenarios
+                    st.markdown('---')
+                    st.subheader('🔗 Escenarios de Vinculación 2026')
+                    if st.button('📊 Generar Escenarios de Vinculación', type='secondary', use_container_width=True):
+                        with st.spinner('Generando escenarios...'):
+                            try:
+                                esc = AnalizadorEscenarios()
+                                esc.cargar_datos(ruta_tmp).analizar()
+                                ruta_esc = esc.generar_excel()
+                                if ruta_esc and os.path.exists(ruta_esc):
+                                    with open(ruta_esc, 'rb') as f:
+                                        esc_bytes = f.read()
+                                    st.download_button(
+                                        label='📥 Descargar Escenarios Vinculación 2026 (.xlsx)',
+                                        data=esc_bytes,
+                                        file_name=os.path.basename(ruta_esc),
+                                        mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                                        type='primary',
+                                        use_container_width=True,
+                                    )
+                                    st.success(f'✅ Escenarios generado: {os.path.basename(ruta_esc)}')
+                                    # Limpiar
+                                    try:
+                                        os.unlink(ruta_esc)
+                                    except:
+                                        pass
+                                else:
+                                    st.warning('No se pudo generar el archivo de escenarios.')
+                            except Exception as ex:
+                                st.error(f'Error generando escenarios: {ex}')
             except Exception as e:
                 st.warning(f'No se pudo generar el reporte: {e}')
                 try:
