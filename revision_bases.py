@@ -618,15 +618,19 @@ class AnalizadorRevisionBases:
 
             self._formatear_hoja_detalle(ws, ws.max_column)
 
-            col_resaltar = v['resaltar'] if v and 'resaltar' in v else None
-            if col_resaltar:
-                col_excel = self.ENCABEZADOS.get(col_resaltar, col_resaltar)
-                header = [ws.cell(row=1, column=c).value for c in range(1, ws.max_column + 1)]
+            # Resaltar todas las columnas del criterio
+            cols_criterio = v['c'] if v and 'c' in v else []
+            header = [ws.cell(row=1, column=c).value for c in range(1, ws.max_column + 1)]
+            cols_resaltadas = []
+            for col_crit in cols_criterio:
+                col_excel = self.ENCABEZADOS.get(col_crit, col_crit)
                 if col_excel in header:
                     col_idx = header.index(col_excel) + 1
                     for row in range(2, ws.max_row + 1):
                         ws.cell(row=row, column=col_idx).fill = amarillo
-                    log.info(f"Columna '{col_excel}' resaltada en hoja '{sn}'")
+                    cols_resaltadas.append(col_excel)
+            if cols_resaltadas:
+                log.info(f"Columnas resaltadas en hoja '{sn}': {cols_resaltadas}")
 
         wb.save(nombre_base)
         wb.close()
