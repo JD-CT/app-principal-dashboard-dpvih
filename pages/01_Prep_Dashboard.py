@@ -39,7 +39,7 @@ st.markdown(f"""
 
 # --- BOTON VOLVER ---
 if st.button("← Volver al Menú Principal", type="secondary", use_container_width=False):
-    st.switch_page("app_principal.py")
+    st.switch_page("Menu_principal.py")
 
 # --- CARGA ---
 st.markdown("### 📂 Cargar indicadores PrEP")
