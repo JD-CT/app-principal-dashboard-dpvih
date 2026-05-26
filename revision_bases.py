@@ -412,7 +412,7 @@ class AnalizadorRevisionBases:
                 self.resumen.append({
                     'ID': idx, 'Verificacion': item['t'],
                     'Categoria': item['cat'], 'Prioridad': item['p'],
-                    'Registros': self.total_registros, 'Problemas': 'N/A',
+                    'Registros': self.total_registros, 'Cantidad': 'N/A',
                     '%': 'N/A', 'Estado': 'OMITIDO',
                     'Criterio': CRITERIOS.get(nombre, ''),
                     'Descripcion': item['d'], 'Detalle': detalle,
@@ -436,7 +436,7 @@ class AnalizadorRevisionBases:
                     self.resumen.append({
                         'ID': idx, 'Verificacion': item['t'],
                         'Categoria': item['cat'], 'Prioridad': item['p'],
-                        'Registros': self.total_registros, 'Problemas': cant,
+                        'Registros': self.total_registros, 'Cantidad': cant,
                         '%': f"{pct:.2f}%", 'Estado': 'REVISAR',
                         'Criterio': CRITERIOS.get(nombre, ''),
                         'Descripcion': item['d'],
@@ -446,7 +446,7 @@ class AnalizadorRevisionBases:
                     self.resumen.append({
                         'ID': idx, 'Verificacion': item['t'],
                         'Categoria': item['cat'], 'Prioridad': item['p'],
-                        'Registros': self.total_registros, 'Problemas': 0,
+                        'Registros': self.total_registros, 'Cantidad': 0,
                         '%': '0.00%', 'Estado': 'SIN PROBLEMAS',
                         'Criterio': CRITERIOS.get(nombre, ''),
                         'Descripcion': item['d'],
@@ -458,7 +458,7 @@ class AnalizadorRevisionBases:
                 self.resumen.append({
                     'ID': idx, 'Verificacion': item['t'],
                     'Categoria': item['cat'], 'Prioridad': item['p'],
-                    'Registros': self.total_registros, 'Problemas': 'ERROR',
+                    'Registros': self.total_registros, 'Cantidad': 'ERROR',
                     '%': 'N/A', 'Estado': 'ERROR',
                     'Criterio': CRITERIOS.get(nombre, ''),
                     'Descripcion': item['d'], 'Detalle': str(e),

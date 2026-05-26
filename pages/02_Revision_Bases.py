@@ -85,22 +85,27 @@ if archivo:
             st.subheader('📋 Resumen de verificaciones')
 
             col_config = {
-                'Verificación': st.column_config.TextColumn('Verificación'),
-                'Descripción': st.column_config.TextColumn('Descripción'),
-                'Problemas': st.column_config.NumberColumn('Problemas'),
+                'Verificacion': st.column_config.TextColumn('Verificación'),
+                'Descripcion': st.column_config.TextColumn('Descripción'),
+                'Cantidad': st.column_config.NumberColumn('Cantidad'),
                 'Prioridad': st.column_config.TextColumn('Prioridad'),
-                'Categoría': st.column_config.TextColumn('Categoría'),
+                'Categoria': st.column_config.TextColumn('Categoría'),
                 'Estado': st.column_config.TextColumn('Estado'),
             }
 
             # Resaltar filas de filtro (categoria) en amarillo
             def _color_filtro(row):
-                cat = str(row.get('Categoría', ''))
+                cat = str(row.get('Categoria', ''))
                 if cat.lower() == 'filtro':
                     return ['background-color: #FFF3CD'] * len(row)
                 return [''] * len(row)
 
-            cols_show = [c for c in ['Verificación', 'Descripción', 'Problemas', 'Prioridad', 'Categoría', 'Estado'] if c in df_resumen.columns]
+            # Agregar nota explicativa de filtro VIH/DVI
+            fila_filtro = df_resumen[df_resumen['Categoria'].str.lower() == 'filtro'] if 'Categoria' in df_resumen.columns else pd.DataFrame()
+            if not fila_filtro.empty:
+                st.info('🟡 **Filtro aplicado:** Solo pasan al análisis los registros con tipo de tamizaje **VIH** o **DVI** (Dual VIH). Los tipos HEB, SIF, DSI y HEC se excluyen automáticamente. La fila en amarillo muestra los que pasan.')
+
+            cols_show = [c for c in ['Verificacion', 'Descripcion', 'Cantidad', 'Prioridad', 'Categoria', 'Estado'] if c in df_resumen.columns]
             st.dataframe(
                 df_resumen[cols_show].style.apply(_color_filtro, axis=1),
                 column_config=col_config,
@@ -120,7 +125,7 @@ if archivo:
 
             v_con_problemas = [
                 r for r in analizador.resumen
-                if _get_num(r.get('Problemas', 0)) > 0
+                if _get_num(r.get('Cantidad', 0)) > 0
             ]
 
             criticos = sum(1 for r in v_con_problemas
@@ -132,7 +137,7 @@ if archivo:
             con_error = sum(1 for r in analizador.resumen
                             if str(r.get('Estado', '')).upper() == 'ERROR')
             total_problemas = sum(
-                _get_num(r.get('Problemas', 0)) for r in analizador.resumen
+                _get_num(r.get('Cantidad', 0)) for r in analizador.resumen
             )
 
             col1, col2, col3, col4, col5 = st.columns(5)
