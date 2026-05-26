@@ -84,17 +84,17 @@ CSS_GLOBAL = """
 .badge-warning{background:#fff3cd;color:#856404}
 .badge-info{background:#d1ecf1;color:#0c5460}
 
-/* Sidebar - EIE */
+/* Sidebar - mismo color que headers de modulos */
 section[data-testid="stSidebar"] {
-    background: linear-gradient(180deg, #1B3A5C 0%, #0F2744 100%);
+    background: linear-gradient(135deg, #1B3A5C, #2A5F8F);
 }
 section[data-testid="stSidebar"] .st-emotion-cache-16idsys {
-    color: #B0D4F1 !important; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600;
+    color: #fff !important; font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500;
 }
-section[data-testid="stSidebar"] p { color: #E8F0FE !important; }
-section[data-testid="stSidebar"] a { color: #E8F0FE !important; text-decoration: none; }
+section[data-testid="stSidebar"] p { color: rgba(255,255,255,.8) !important; font-size: 12px; }
+section[data-testid="stSidebar"] a { color: rgba(255,255,255,.8) !important; text-decoration: none; }
 section[data-testid="stSidebar"] a:hover { color: #fff !important; }
-section[data-testid="stSidebar"] hr { border-color: rgba(255,255,255,0.1); }
+section[data-testid="stSidebar"] hr { border-color: rgba(255,255,255,0.15); }
 
 </style>
 """
