@@ -607,8 +607,7 @@ class AnalizadorRevisionBases:
                 detalle = f"Cols faltantes: {faltan}" if faltan else f"No implementada: {nombre}"
                 self.resumen.append({
                     'ID': idx, 'Verificacion': item['t'],
-                    'Categoria': item['cat'], 'Prioridad': item['p'],
-                    'Registros': self.total_registros, 'Cantidad': 'N/A',
+                    'Categoria': item['cat'],                     'Registros': self.total_registros, 'Cantidad': 'N/A',
                     '%': 'N/A', 'Estado': 'OMITIDO',
                     'Criterio': CRITERIOS.get(nombre, ''),
                     'Descripcion': item['d'], 'Detalle': detalle,
@@ -634,8 +633,7 @@ class AnalizadorRevisionBases:
                     }
                     self.resumen.append({
                         'ID': idx, 'Verificacion': item['t'],
-                        'Categoria': item['cat'], 'Prioridad': item['p'],
-                        'Registros': total_base, 'Cantidad': cant,
+                        'Categoria': item['cat'],                         'Registros': total_base, 'Cantidad': cant,
                         '%': f"{pct:.2f}%", 'Estado': 'REVISAR',
                         'Criterio': CRITERIOS.get(nombre, ''),
                         'Descripcion': item['d'],
@@ -644,8 +642,7 @@ class AnalizadorRevisionBases:
                 else:
                     self.resumen.append({
                         'ID': idx, 'Verificacion': item['t'],
-                        'Categoria': item['cat'], 'Prioridad': item['p'],
-                        'Registros': total_base, 'Cantidad': 0,
+                        'Categoria': item['cat'],                         'Registros': total_base, 'Cantidad': 0,
                         '%': '0.00%', 'Estado': 'SIN PROBLEMAS',
                         'Criterio': CRITERIOS.get(nombre, ''),
                         'Descripcion': item['d'],
@@ -656,8 +653,7 @@ class AnalizadorRevisionBases:
                 log.error(f"Error en {nombre}: {e}")
                 self.resumen.append({
                     'ID': idx, 'Verificacion': item['t'],
-                    'Categoria': item['cat'], 'Prioridad': item['p'],
-                    'Registros': self.total_registros, 'Cantidad': 'ERROR',
+                    'Categoria': item['cat'],                     'Registros': self.total_registros, 'Cantidad': 'ERROR',
                     '%': 'N/A', 'Estado': 'ERROR',
                     'Criterio': CRITERIOS.get(nombre, ''),
                     'Descripcion': item['d'], 'Detalle': str(e),

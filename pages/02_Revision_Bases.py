@@ -88,12 +88,11 @@ if archivo:
                 'Verificacion': st.column_config.TextColumn('Verificación'),
                 'Descripcion': st.column_config.TextColumn('Descripción'),
                 'Cantidad': st.column_config.NumberColumn('Cantidad'),
-                'Prioridad': st.column_config.TextColumn('Prioridad'),
                 'Categoria': st.column_config.TextColumn('Categoría'),
                 'Estado': st.column_config.TextColumn('Estado'),
             }
 
-            cols_show = [c for c in ['Verificacion', 'Descripcion', 'Cantidad', 'Prioridad', 'Categoria', 'Estado'] if c in df_resumen.columns]
+            cols_show = [c for c in ['Verificacion', 'Descripcion', 'Categoria', 'Cantidad', 'Estado'] if c in df_resumen.columns]
             st.dataframe(
                 df_resumen[cols_show],
                 column_config=col_config,
