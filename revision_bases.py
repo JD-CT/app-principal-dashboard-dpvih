@@ -74,12 +74,11 @@ VERIFICACIONES = [
     },
     {
         'n': 'duplicados_tamizaje',
-        't': 'Duplicados por UID y fecha de tamizaje',
-        'd': 'Mismo paciente (UID) tamizado en la misma fecha. '
-             'Se elimina el ultimo registro, quedandose con el primero.',
-        'c': ['uid', 'fecha_tamizaje'],
+        't': 'Duplicados por UID',
+        'd': 'Identifica registros con mismo UID duplicado',
+        'c': ['uid'],
         'resaltar': 'uid',
-        'p': 'alta',
+        'p': 'media',
         'cat': 'duplicados'
     },
     {
@@ -160,7 +159,7 @@ VERIFICACIONES = [
 # ──────────────────────────────────────────────
 # FUNCIONES DE VERIFICACION
 # ──────────────────────────────────────────────
-CRITERIOS = {v['n']: f"Columna(s): {', '.join(v['c'])} | Prioridad: {v['p']}" for v in VERIFICACIONES}
+CRITERIOS = {v['n']: f"Columna(s): {', '.join(v['c'])}" for v in VERIFICACIONES}
 
 RUTA_PLANTILLA = 'Trama_Unificada_encabezados.xlsx'
 
@@ -176,11 +175,10 @@ def _filtro_vih_dvi(df):
 
 
 def _duplicados_tamizaje(df):
-    """Detectar duplicados por UID + fecha_tamizaje"""
-    if 'uid' not in df.columns or 'fecha_tamizaje' not in df.columns:
+    """Detectar duplicados por UID"""
+    if 'uid' not in df.columns:
         return pd.DataFrame()
-    col_fecha = 'fecha_tamizaje'
-    dup_mask = df.duplicated(subset=['uid', col_fecha], keep='first')
+    dup_mask = df.duplicated(subset=['uid'], keep=False)
     d = df[dup_mask].copy()
     return d if not d.empty else pd.DataFrame()
 
@@ -748,7 +746,7 @@ class AnalizadorRevisionBases:
                 header = [ws.cell(row=3, column=c).value for c in range(1, ws.max_column + 1)]
                 if col_excel in header:
                     col_idx = header.index(col_excel) + 1
-                    for row in range(5, ws.max_row + 1):
+                    for row in range(4, ws.max_row + 1):
                         ws.cell(row=row, column=col_idx).fill = amarillo
                     log.info(f"Columna '{col_excel}' resaltada en hoja '{sn}'")
 
