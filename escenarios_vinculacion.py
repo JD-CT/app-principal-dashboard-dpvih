@@ -21,6 +21,7 @@ ANIO = 2026
 # Mapeo de columnas de la Trama Unificada v1.6 (73 col)
 TRAMA_COLUMNAS = {
     'uid': 'CÓDIGO UID',
+    'uid_alt': 'CÓDIGO PACIENTE',
     'documento_its': 'NÚMERO DE DOCUMENTO USUARIO ITS / BRIGADISTA',
     'documento_vih': 'NÚMERO DE DOCUMENTO USUARIO VIH',
     'documento_prep': 'NÚMERO DE DOCUMENTO USUARIO PREP',
@@ -225,6 +226,14 @@ class AnalizadorEscenarios:
         # Renombrar columnas existentes (usando el nombre original de la trama)
         rename_map = {v: k for k, v in self.cols_mapeadas.items()}
         self.df = self.df.rename(columns=rename_map)
+
+        # Unificar uid (soporta 'CODIGO UID' y 'CODIGO PACIENTE')
+        if 'uid_alt' in self.df.columns and 'uid' not in self.df.columns:
+            self.df['uid'] = self.df['uid_alt']
+        elif 'uid_alt' in self.df.columns and 'uid' in self.df.columns:
+            self.df['uid'] = self.df['uid'].fillna(self.df['uid_alt'])
+        if 'uid_alt' in self.df.columns:
+            self.df = self.df.drop(columns=['uid_alt'])
 
         # Convertir fechas
         for col in ['tamizaje_fecha', 'vinculo_fecha', 'fecha_inicio_tar',
