@@ -201,7 +201,7 @@ def _vinculados_sin_padron(df):
     """Vinculacion efectiva en ITS sin registro en TAR ni PrEP"""
     if 'vinculo_estado' not in df.columns or 'eess_vih' not in df.columns or 'eess_prep' not in df.columns:
         return pd.DataFrame()
-    efec = df['vinculo_estado'].str.upper().str.contains('EFECTIVA|EFECTIVO', na=False)
+    efec = df['vinculo_estado'].str.lower() == 'efectiva'
     no_tar = df['eess_vih'].isna() | (df['eess_vih'].astype(str).str.strip() == '')
     no_prep = df['eess_prep'].isna() | (df['eess_prep'].astype(str).str.strip() == '')
     d = df[efec & no_tar & no_prep]
