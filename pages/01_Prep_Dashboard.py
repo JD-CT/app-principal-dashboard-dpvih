@@ -25,21 +25,21 @@ def _hora_lima():
     return ahora.strftime('%d/%m/%Y %H:%M')
 
 
-st.set_page_config(page_title="Dashboard PrEP - EIE", page_icon="💊",
-                   layout="wide", initial_sidebar_state="collapsed")
+st.set_page_config(
+    page_title='Dashboard PrEP',
+    page_icon='💊',
+    layout='wide',
+)
 
-st.markdown(CSS_GLOBAL, unsafe_allow_html=True)
-
-# --- HEADER ---
-st.markdown(f"""
-<div class="sihce-header">
-  <div>
-    <h1>💊 PrEP &mdash; Indicadores</h1>
-    <p class="sub">Equipo de Informaci&oacute;n Estrat&eacute;gica</p>
-  </div>
-  <div class="info">v{VERSION}<br>{_hora_lima()}</div>
-</div>
+st.markdown("""
+<style>
+    .main-header { background: linear-gradient(135deg, #1B3A5C, #2A5F8F); padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; }
+    .main-header h1 { color: #fff; margin: 0; font-size: 1.8rem; font-weight: 600; }
+    .main-header p { color: #B0D4F1; margin: 0.3rem 0 0 0; font-size: 0.9rem; }
+</style>
 """, unsafe_allow_html=True)
+
+st.markdown(f'<div class="main-header"><h1>💊 Dashboard PrEP</h1><p>Equipo de Informaci&oacute;n Estrat&eacute;gica &middot; v{VERSION} &middot; {_hora_lima()}</p></div>', unsafe_allow_html=True)
 
 # --- BOTON VOLVER ---
 if st.button("← Volver al Menú Principal", type="secondary", use_container_width=False):
@@ -361,8 +361,7 @@ with st.spinner("Cargando indicadores..."):
     # Footer
     st.markdown(f"""
     <div class="sihce-footer">
-      Dashboard PrEP &middot; EIE v{VERSION} &middot; {_hora_lima()} &middot;
-      Archivo: {archivo.name} &middot; Padrón: {total_padron:,} &middot;
+      Dashboard PrEP &middot; EIE v{VERSION} &middot; {_hora_lima()}
       I.2: {inicios_anio:,} &middot; I.3: {activos_anio:,}
     </div>
     """, unsafe_allow_html=True)
