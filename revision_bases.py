@@ -523,6 +523,30 @@ class AnalizadorRevisionBases:
                     except Exception:
                         pass
 
+        # Colores fijos para fila 3 segun rangos
+        # A-J (1-10) -> #4472C4, K-P (11-16) -> #FFC000
+        # Q-Y (17-25) -> #4472C4, Z-AG (26-33) -> #FFC000
+        # AH-BA (34-53) -> #ED7D31, BB-BU (54-73) -> #70AD47
+        colores_f3 = {
+            (1, 10): '4472C4',
+            (11, 16): 'FFC000',
+            (17, 25): '4472C4',
+            (26, 33): 'FFC000',
+            (34, 53): 'ED7D31',
+            (54, 73): '70AD47',
+        }
+        fill_blanco = PatternFill(start_color='FFFFFFFF', end_color='FFFFFFFF', fill_type='solid')
+        font_f3 = Font(bold=True, color='FFFFFF', size=10)
+        for inicio, fin in colores_f3:
+            color = colores_f3[(inicio, fin)]
+            fill_rango = PatternFill(start_color=color, end_color=color, fill_type='solid')
+            for col in range(inicio, min(fin, max_col) + 1):
+                if (3, col) not in merged_cells_set:
+                    cell = ws.cell(row=3, column=col)
+                    cell.fill = fill_rango
+                    cell.font = font_f3
+                    cell.alignment = Alignment(horizontal='center', vertical='center')
+
         # Copiar ancho de columnas
         for col_idx in range(1, max_col + 1):
             letter = get_column_letter(col_idx)
