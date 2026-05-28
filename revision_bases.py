@@ -483,23 +483,24 @@ class AnalizadorRevisionBases:
             t0 = pd.Timestamp.now()
             nombre = item['n']
             fn = FUNCIONES.get(nombre)
+            es_oculta = item.get('oculta', False)
 
             faltan = self._campos_existen(item['c'])
             if faltan or fn is None:
                 self._v_omitidas.append(nombre)
                 detalle = f"Cols faltantes: {faltan}" if faltan else f"No implementada: {nombre}"
-                self.resumen.append({
-                    'ID': idx, 'Verificacion': item['t'],
-                    'Categoria': item['cat'],                     'Registros': self.total_registros, 'Cantidad': 'N/A',
-                    '%': 'N/A', 'Estado': 'OMITIDO',
-                    'Criterio': CRITERIOS.get(nombre, ''),
-                    'Descripcion': item['d'], 'Detalle': detalle,
-                })
+                if not es_oculta:
+                    self.resumen.append({
+                        'ID': idx, 'Verificacion': item['t'],
+                        'Categoria': item['cat'], 'Registros': self.total_registros,
+                        'Cantidad': 'N/A', '%': 'N/A', 'Estado': 'OMITIDO',
+                        'Criterio': CRITERIOS.get(nombre, ''),
+                        'Descripcion': item['d'], 'Detalle': detalle,
+                    })
                 log.warning(f"  OMITIDO: {nombre} -> {detalle}")
                 continue
 
             try:
-                # La verificacion #1 (filtro) usa df original, las demas usan df filtrado
                 df_para_verif = self.df_original if nombre == 'filtro_vih_dvi' and hasattr(self, 'df_original') and self.df_original is not None else self.df
                 registros = fn(df_para_verif)
                 elapsed = (pd.Timestamp.now() - t0).total_seconds()
@@ -514,33 +515,36 @@ class AnalizadorRevisionBases:
                         'registros': registros, 'revisados': total_base,
                         'porcentaje': pct,
                     }
-                    self.resumen.append({
-                        'ID': idx, 'Verificacion': item['t'],
-                        'Categoria': item['cat'],                         'Registros': total_base, 'Cantidad': cant,
-                        '%': f"{pct:.2f}%", 'Estado': 'REVISAR',
-                        'Criterio': CRITERIOS.get(nombre, ''),
-                        'Descripcion': item['d'],
-                    })
+                    if not es_oculta:
+                        self.resumen.append({
+                            'ID': idx, 'Verificacion': item['t'],
+                            'Categoria': item['cat'], 'Registros': total_base,
+                            'Cantidad': cant, '%': f"{pct:.2f}%", 'Estado': 'REVISAR',
+                            'Criterio': CRITERIOS.get(nombre, ''),
+                            'Descripcion': item['d'],
+                        })
                     log.info(f"  -> {cant}/{total_base} registros ({pct:.2f}%) en {elapsed:.2f}s")
                 else:
-                    self.resumen.append({
-                        'ID': idx, 'Verificacion': item['t'],
-                        'Categoria': item['cat'],                         'Registros': total_base, 'Cantidad': 0,
-                        '%': '0.00%', 'Estado': 'SIN PROBLEMAS',
-                        'Criterio': CRITERIOS.get(nombre, ''),
-                        'Descripcion': item['d'],
-                    })
+                    if not es_oculta:
+                        self.resumen.append({
+                            'ID': idx, 'Verificacion': item['t'],
+                            'Categoria': item['cat'], 'Registros': total_base,
+                            'Cantidad': 0, '%': '0.00%', 'Estado': 'SIN PROBLEMAS',
+                            'Criterio': CRITERIOS.get(nombre, ''),
+                            'Descripcion': item['d'],
+                        })
                     log.info(f"  -> 0 problemas en {elapsed:.2f}s")
             except Exception as e:
                 elapsed = (pd.Timestamp.now() - t0).total_seconds()
                 log.error(f"Error en {nombre}: {e}")
-                self.resumen.append({
-                    'ID': idx, 'Verificacion': item['t'],
-                    'Categoria': item['cat'],                     'Registros': self.total_registros, 'Cantidad': 'ERROR',
-                    '%': 'N/A', 'Estado': 'ERROR',
-                    'Criterio': CRITERIOS.get(nombre, ''),
-                    'Descripcion': item['d'], 'Detalle': str(e),
-                })
+                if not es_oculta:
+                    self.resumen.append({
+                        'ID': idx, 'Verificacion': item['t'],
+                        'Categoria': item['cat'], 'Registros': self.total_registros,
+                        'Cantidad': 'ERROR', '%': 'N/A', 'Estado': 'ERROR',
+                        'Criterio': CRITERIOS.get(nombre, ''),
+                        'Descripcion': item['d'], 'Detalle': str(e),
+                    })
 
         # Convertir columnas datetime a solo fecha (sin hora) en todos los resultados
         for nombre, res in self.resultados.items():

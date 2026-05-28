@@ -79,9 +79,7 @@ if archivo:
             st.code(traceback.format_exc())
 
         if analizador is not None and hasattr(analizador, 'resumen') and analizador.resumen:
-            # Ocultar verificaciones marcadas como 'oculta' del resumen visual
-            resumen_visible = [r for r in analizador.resumen if not r.get('oculta', False)]
-            df_resumen = pd.DataFrame(resumen_visible)
+            df_resumen = pd.DataFrame(analizador.resumen)
 
             st.subheader('📋 Resumen de verificaciones')
 
@@ -113,16 +111,16 @@ if archivo:
                 return default
 
             v_con_problemas = [
-                r for r in resumen_visible
+                r for r in analizador.resumen
                 if _get_num(r.get('Cantidad', 0)) > 0
             ]
 
-            omitidas = sum(1 for r in resumen_visible
+            omitidas = sum(1 for r in analizador.resumen
                            if str(r.get('Estado', '')).upper() == 'OMITIDO')
-            con_error = sum(1 for r in resumen_visible
+            con_error = sum(1 for r in analizador.resumen
                             if str(r.get('Estado', '')).upper() == 'ERROR')
             total_problemas = sum(
-                _get_num(r.get('Cantidad', 0)) for r in resumen_visible
+                _get_num(r.get('Cantidad', 0)) for r in analizador.resumen
             )
 
             col1, col2, col3, col4 = st.columns(4)
