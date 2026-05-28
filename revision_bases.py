@@ -75,8 +75,8 @@ VERIFICACIONES = [
         't': 'Duplicados exactos (mismo paciente, mismo dia)',
         'oculta': True,
         'd': 'Detecta duplicados exactos. No se muestra en resumen.',
-        'c': ['CODIGO UID', 'fecha_tamizaje'],
-        'resaltar': 'CODIGO UID',
+        'c': ['uid', 'fecha_tamizaje'],
+        'resaltar': 'uid',
         'p': 'media',
         'cat': 'duplicados'
     },
@@ -108,8 +108,8 @@ VERIFICACIONES = [
         'n': 'en_tar_sin_tamizaje_its',
         't': 'En TAR sin tamizaje ITS registrado',
         'd': 'Paciente que aparece en TAR (con condicion_vih y fecha_inicio_tar) '
-             'pero no tiene ningun registro en ITS (CODIGO UID no aparece en datos ITS).',
-        'c': ['CODIGO UID', 'fecha_tamizaje', 'condicion_vih'],
+             'pero no tiene ningun registro en ITS (uid no aparece en datos ITS).',
+        'c': ['uid', 'fecha_tamizaje', 'condicion_vih'],
         'resaltar': 'condicion_vih',
         'p': 'media',
         'cat': 'brecha'
@@ -143,7 +143,8 @@ VERIFICACIONES = [
 # ──────────────────────────────────────────────
 # FUNCIONES DE VERIFICACION
 # ──────────────────────────────────────────────
-CRITERIOS = {v['n']: f"Columna(s): {', '.join(v['c'])}" for v in VERIFICACIONES}
+# CRITERIOS se llena en __init__() con ENCABEZADOS disponibles para tener nombres amigables
+CRITERIOS = {}
 
 RUTA_PLANTILLA = 'Trama_Unificada_encabezados.xlsx'
 
@@ -400,6 +401,10 @@ class AnalizadorRevisionBases:
         self.resultados = {}
         self._v_omitidas = []
         self.tiempos = {}
+        # CRITERIOS con nombres amigables desde ENCABEZADOS
+        for v in VERIFICACIONES:
+            partes = [self.ENCABEZADOS.get(c, c) for c in v['c']]
+            CRITERIOS[v['n']] = f"Columna(s): {', '.join(partes)}"
 
     def cargar_datos(self, ruta_excel, hoja=None):
         """Carga el Excel de la Trama Unificada"""
@@ -481,19 +486,23 @@ class AnalizadorRevisionBases:
             self.df_original = None
             self.total_filtrados = self.total_registros
 
+        id_visible = 0
         for idx, item in enumerate(VERIFICACIONES, 1):
             t0 = pd.Timestamp.now()
             nombre = item['n']
             fn = FUNCIONES.get(nombre)
             es_oculta = item.get('oculta', False)
+            if not es_oculta:
+                id_visible += 1
 
             faltan = self._campos_existen(item['c'])
             if faltan or fn is None:
                 self._v_omitidas.append(nombre)
-                detalle = f"Cols faltantes: {faltan}" if faltan else f"No implementada: {nombre}"
+                cols_amigables = [self.ENCABEZADOS.get(c, c) for c in faltan] if faltan else []
+                detalle = f"Cols faltantes: {cols_amigables}" if faltan else f"No implementada: {nombre}"
                 if not es_oculta:
                     self.resumen.append({
-                        'ID': idx, 'Verificacion': item['t'],
+                        'ID': id_visible, 'Verificacion': item['t'],
                         'Categoria': item['cat'], 'Registros': self.total_registros,
                         'Cantidad': 'N/A', '%': 'N/A', 'Estado': 'OMITIDO',
                         'Criterio': CRITERIOS.get(nombre, ''),
@@ -519,7 +528,7 @@ class AnalizadorRevisionBases:
                     }
                     if not es_oculta:
                         self.resumen.append({
-                            'ID': idx, 'Verificacion': item['t'],
+                            'ID': id_visible, 'Verificacion': item['t'],
                             'Categoria': item['cat'], 'Registros': total_base,
                             'Cantidad': cant, '%': f"{pct:.2f}%", 'Estado': 'REVISAR',
                             'Criterio': CRITERIOS.get(nombre, ''),
@@ -529,7 +538,7 @@ class AnalizadorRevisionBases:
                 else:
                     if not es_oculta:
                         self.resumen.append({
-                            'ID': idx, 'Verificacion': item['t'],
+                            'ID': id_visible, 'Verificacion': item['t'],
                             'Categoria': item['cat'], 'Registros': total_base,
                             'Cantidad': 0, '%': '0.00%', 'Estado': 'SIN PROBLEMAS',
                             'Criterio': CRITERIOS.get(nombre, ''),
@@ -541,7 +550,7 @@ class AnalizadorRevisionBases:
                 log.error(f"Error en {nombre}: {e}")
                 if not es_oculta:
                     self.resumen.append({
-                        'ID': idx, 'Verificacion': item['t'],
+                        'ID': id_visible, 'Verificacion': item['t'],
                         'Categoria': item['cat'], 'Registros': self.total_registros,
                         'Cantidad': 'ERROR', '%': 'N/A', 'Estado': 'ERROR',
                         'Criterio': CRITERIOS.get(nombre, ''),
