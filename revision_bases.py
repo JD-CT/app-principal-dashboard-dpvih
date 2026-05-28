@@ -431,9 +431,14 @@ class AnalizadorRevisionBases:
     def _formatear_hoja_detalle(self, ws, max_col):
         """Aplica colores y ancho a hoja ya escrita con pandas"""
         colores_f3 = {
-            (1, 10): '4472C4', (11, 16): 'FFC000',
-            (17, 25): '4472C4', (26, 33): 'FFC000',
-            (34, 53): 'ED7D31', (54, 73): '70AD47',
+            (1, 1): '4472C4',  (2, 6): '4472C4',   # CODIGO PACIENTE, demo+ITS
+            (7, 13): 'FFC000',                       # SECTOR - ITS ... CODIGO RENIPRES - ITS
+            (14, 16): '4472C4',                      # NUM DOC BRIGADISTA, NOMBRE, APELLIDO
+            (17, 25): '4472C4',                      # BRIGADA ... RESULTADO 1
+            (26, 35): 'FFC000',                      # FECHA REG ITS ... EESS ORIGEN
+            (36, 36): '4472C4',                      # PROFESIONAL
+            (37, 55): 'ED7D31',                      # SECTOR - VIH ... FECHA MOD VIH
+            (56, 73): '70AD47',                      # SECTOR - PREP ... FECHA MOD PREP
             (74, 100): '70AD47',
         }
         font_f3 = Font(bold=True, color='FFFFFF', size=10)
