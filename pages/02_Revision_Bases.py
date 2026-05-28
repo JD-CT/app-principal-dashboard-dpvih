@@ -19,7 +19,7 @@ from revision_bases import AnalizadorRevisionBases
 
 st.set_page_config(
     page_title='Revisión de Bases - ITS/TAR/PrEP',
-    page_icon='🔍',
+    page_icon='📊',
     layout='wide',
 )
 
@@ -31,12 +31,12 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<div class="main-header"><h1>🔍 Revisión de Bases — ITS / TAR / PrEP</h1><p>Sube la Trama Unificada (73 columnas) para analizar calidad, brechas y vinculaciones automáticamente</p></div>', unsafe_allow_html=True)
+st.markdown('<div class="main-header"><h1>Revisión de Bases — ITS / TAR / PrEP</h1><p>Sube la Trama Unificada (73 columnas) para analizar calidad, brechas y vinculaciones automaticamente</p></div>', unsafe_allow_html=True)
 
 # ──────────────────────────
 # INFO DEL PROCESO
 # ──────────────────────────
-with st.expander("📖 ¿Cómo funciona?", expanded=False):
+with st.expander("Como funciona", expanded=False):
     st.markdown("""
     **Proceso automatizado** (reemplaza los 6 pasos manuales en Excel):
 
@@ -81,7 +81,7 @@ if archivo:
         if analizador is not None and hasattr(analizador, 'resumen') and analizador.resumen:
             df_resumen = pd.DataFrame(analizador.resumen)
 
-            st.subheader('📋 Resumen de verificaciones')
+            st.subheader('Resumen de verificaciones')
 
             col_config = {
                 'ID': st.column_config.NumberColumn('#'),
@@ -101,7 +101,7 @@ if archivo:
             )
 
             # ────────── METRICAS RAPIDAS ──────────
-            st.subheader('📊 Métricas rápidas')
+            st.subheader('Metricas rapidas')
 
             total = analizador.total_registros if hasattr(analizador, 'total_registros') else 0
 
@@ -136,20 +136,20 @@ if archivo:
                     with open(ruta_reporte, 'rb') as f:
                         excel_bytes = f.read()
                     st.download_button(
-                        label='📥 Descargar Excel completo (.xlsx)',
+                        label='Descargar Excel completo (.xlsx)',
                         data=excel_bytes,
                         file_name=os.path.basename(ruta_reporte),
                         mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                         type='primary',
                         use_container_width=True,
                     )
-                    st.success(f'✅ Reporte generado: {os.path.basename(ruta_reporte)}')
+                    st.success(f'Reporte generado: {os.path.basename(ruta_reporte)}')
 
                     # ────────── BOTON ESCENARIOS VINCULACION 2026 ──────────
                     from escenarios_vinculacion import AnalizadorEscenarios
                     st.markdown('---')
-                    st.subheader('🔗 Escenarios de Vinculación 2026')
-                    if st.button('📊 Generar Escenarios de Vinculación', type='secondary', use_container_width=True):
+                    st.subheader('Escenarios de Vinculacion 2026')
+                    if st.button('Generar Escenarios de Vinculacion', type='secondary', use_container_width=True):
                         with st.spinner('Generando escenarios...'):
                             try:
                                 esc = AnalizadorEscenarios()
@@ -159,14 +159,14 @@ if archivo:
                                     with open(ruta_esc, 'rb') as f:
                                         esc_bytes = f.read()
                                     st.download_button(
-                                        label='📥 Descargar Escenarios Vinculación 2026 (.xlsx)',
+                                        label='Descargar Escenarios Vinculacion 2026 (.xlsx)',
                                         data=esc_bytes,
                                         file_name=os.path.basename(ruta_esc),
                                         mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                                         type='primary',
                                         use_container_width=True,
                                     )
-                                    st.success(f'✅ Escenarios generado: {os.path.basename(ruta_esc)}')
+                                    st.success(f'Escenarios generado: {os.path.basename(ruta_esc)}')
                                     # Limpiar
                                     try:
                                         os.unlink(ruta_esc)
@@ -189,7 +189,7 @@ if archivo:
                                 registros.to_excel(writer, sheet_name=sn, index=False)
                     buf.seek(0)
                     st.download_button(
-                        label='📥 Descargar Excel (fallback)',
+                        label='Descargar Excel (fallback)',
                         data=buf,
                         file_name='Revision_Bases.xlsx',
                         mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -197,7 +197,7 @@ if archivo:
                 except:
                     csv_data = df_resumen.to_csv(index=False).encode('utf-8')
                     st.download_button(
-                        label='📥 Descargar resumen CSV',
+                        label='Descargar resumen CSV',
                         data=csv_data,
                         file_name='Revision_Bases.csv',
                         mime='text/csv',

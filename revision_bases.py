@@ -75,8 +75,8 @@ VERIFICACIONES = [
         't': 'Duplicados exactos (mismo paciente, mismo dia)',
         'oculta': True,
         'd': 'Detecta duplicados exactos. No se muestra en resumen.',
-        'c': ['uid', 'fecha_tamizaje'],
-        'resaltar': 'uid',
+        'c': ['CODIGO UID', 'fecha_tamizaje'],
+        'resaltar': 'CODIGO UID',
         'p': 'media',
         'cat': 'duplicados'
     },
@@ -108,8 +108,8 @@ VERIFICACIONES = [
         'n': 'en_tar_sin_tamizaje_its',
         't': 'En TAR sin tamizaje ITS registrado',
         'd': 'Paciente que aparece en TAR (con condicion_vih y fecha_inicio_tar) '
-             'pero no tiene ningun registro en ITS (uid no aparece en datos ITS).',
-        'c': ['uid', 'fecha_tamizaje', 'condicion_vih'],
+             'pero no tiene ningun registro en ITS (CODIGO UID no aparece en datos ITS).',
+        'c': ['CODIGO UID', 'fecha_tamizaje', 'condicion_vih'],
         'resaltar': 'condicion_vih',
         'p': 'media',
         'cat': 'brecha'
@@ -159,12 +159,13 @@ def _filtro_vih_dvi(df):
 
 
 def _duplicados_tamizaje(df):
-    """Detectar duplicados exactos: mismo UID + misma fecha de tamizaje"""
-    if 'uid' not in df.columns:
+    """Detectar duplicados exactos: mismo CODIGO UID + misma fecha de tamizaje"""
+    uid_col = 'codigo_paciente' if 'codigo_paciente' in df.columns else 'uid'
+    if uid_col not in df.columns:
         return pd.DataFrame()
-    key_cols = ['uid', 'fecha_tamizaje']
+    key_cols = [uid_col, 'fecha_tamizaje']
     if 'fecha_tamizaje' not in df.columns:
-        key_cols = ['uid']
+        key_cols = [uid_col]
     dup_mask = df.duplicated(subset=key_cols, keep=False)
     d = df[dup_mask].copy()
     return d if not d.empty else pd.DataFrame()
@@ -196,7 +197,8 @@ def _vinculados_sin_padron(df):
 
 def _en_tar_sin_tamizaje_its(df):
     """En TAR pero sin tamizaje ITS"""
-    if 'uid' not in df.columns or 'fecha_tamizaje' not in df.columns:
+    uid_col = 'codigo_paciente' if 'codigo_paciente' in df.columns else 'uid'
+    if uid_col not in df.columns or 'fecha_tamizaje' not in df.columns:
         return pd.DataFrame()
     d = df[
         (df['condicion_vih'].notna()) &
@@ -430,29 +432,29 @@ class AnalizadorRevisionBases:
 
     
     def _formatear_hoja_detalle(self, ws, max_col):
-        """Aplica colores y ancho a hoja ya escrita con pandas"""
-        colores_f3 = {
-            (1, 1): '4472C4',  (2, 6): '4472C4',   # CODIGO PACIENTE, demo+ITS
-            (7, 13): 'FFC000',                       # SECTOR - ITS ... CODIGO RENIPRES - ITS
-            (14, 16): '4472C4',                      # NUM DOC BRIGADISTA, NOMBRE, APELLIDO
-            (17, 25): '4472C4',                      # BRIGADA ... RESULTADO 1
-            (26, 35): 'FFC000',                      # FECHA REG ITS ... EESS ORIGEN
-            (36, 36): '4472C4',                      # PROFESIONAL
-            (37, 55): 'ED7D31',                      # SECTOR - VIH ... FECHA MOD VIH
-            (56, 73): '70AD47',                      # SECTOR - PREP ... FECHA MOD PREP
-            (74, 100): '70AD47',
-        }
-        font_f3 = Font(bold=True, color='FFFFFF', size=10)
-        for inicio, fin in colores_f3:
-            c = colores_f3[(inicio, fin)]
-            fill_rango = PatternFill(start_color=c, end_color=c, fill_type='solid')
-            for col in range(inicio, min(fin, max_col) + 1):
-                cell = ws.cell(row=1, column=col)
-                cell.fill = fill_rango
-                cell.font = font_f3
-                cell.alignment = Alignment(horizontal='center', vertical='center')
-        for col_idx in range(1, max_col + 1):
-            ws.column_dimensions[get_column_letter(col_idx)].width = 13.0
+        """Formato tipo Escenarios: header #1B3A5C, filas alternadas F5F7FA, autoancho"""
+        header_fill = PatternFill(start_color='1B3A5C', end_color='1B3A5C', fill_type='solid')
+        header_font = Font(bold=True, size=10, color='FFFFFF')
+        light_fill = PatternFill(start_color='F5F7FA', end_color='F5F7FA', fill_type='solid')
+
+        for col in range(1, max_col + 1):
+            cell = ws.cell(row=1, column=col)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal='center', vertical='center')
+
+        for col in range(1, max_col + 1):
+            max_len = 0
+            for row in range(1, min(ws.max_row + 1, 50)):
+                val = ws.cell(row=row, column=col).value
+                if val:
+                    max_len = max(max_len, len(str(val)))
+            ws.column_dimensions[get_column_letter(col)].width = min(max_len + 3, 40)
+
+        for row in range(2, ws.max_row + 1):
+            if row % 2 == 0:
+                for col in range(1, max_col + 1):
+                    ws.cell(row=row, column=col).fill = light_fill
 
 
     def analizar(self):
@@ -573,30 +575,17 @@ class AnalizadorRevisionBases:
 
         # Paso 1: escribir hojas con pandas (rapido)
         with pd.ExcelWriter(nombre_base, engine='openpyxl') as writer:
-            total_problemas = sum(
-                r.get('Problemas', 0) for r in self.resumen
-                if isinstance(r.get('Problemas', 0), (int, float))
-            )
-            criticos = sum(1 for r in self.resumen
-                           if str(r.get('Prioridad', '')).lower() == 'critica'
-                           and isinstance(r.get('Problemas', 0), (int, float))
-                           and r.get('Problemas', 0) > 0)
-            altos = sum(1 for r in self.resumen
-                        if str(r.get('Prioridad', '')).lower() == 'alta'
-                        and isinstance(r.get('Problemas', 0), (int, float))
-                        and r.get('Problemas', 0) > 0)
-
             df_gen = pd.DataFrame({
                 'Metrica': ['Total Registros', 'Verificaciones Registradas',
-                    'Verificaciones con Problemas', 'Verificaciones Omitidas',
-                    'Total Problemas Encontrados', 'Criticos', 'Alta Prioridad',
-                    'Fecha Analisis', 'Script'],
-                'Valor': [self.total_registros, len(VERIFICACIONES),
+                    'Verificaciones con Problemas',
+                    'Total Problemas Encontrados', 'Fecha Analisis', 'Script'],
+                'Valor': [self.total_registros, len(self.resumen),
                     sum(1 for r in self.resumen
-                        if isinstance(r.get('Problemas', 0), (int, float))
-                        and r.get('Problemas', 0) > 0),
-                    len(self._v_omitidas), total_problemas, criticos, altos,
-                    datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'Revision Bases v1.0']
+                        if isinstance(r.get('Cantidad', 0), (int, float))
+                        and r.get('Cantidad', 0) > 0),
+                    sum(r.get('Cantidad', 0) for r in self.resumen
+                        if isinstance(r.get('Cantidad', 0), (int, float))),
+                    datetime.now().strftime('%Y-%m-%d %H:%M:%S'), 'Revision Bases v2.0']
             })
             df_gen.to_excel(writer, sheet_name='Resumen General', index=False)
             df_resumen.to_excel(writer, sheet_name='Resumen Verificaciones', index=False)
@@ -619,6 +608,33 @@ class AnalizadorRevisionBases:
         t1 = datetime.now()
         log.info(f"Escritura pandas: {(t1-t_start).total_seconds():.1f}s")
         wb = load_workbook(nombre_base)
+
+        # Formato uniforme: Resumen General y Resumen Verificaciones
+        header_fill = PatternFill(start_color='1B3A5C', end_color='1B3A5C', fill_type='solid')
+        header_font = Font(bold=True, size=10, color='FFFFFF')
+        light_fill = PatternFill(start_color='F5F7FA', end_color='F5F7FA', fill_type='solid')
+
+        for nombre_hoja in ['Resumen General', 'Resumen Verificaciones']:
+            if nombre_hoja not in wb.sheetnames:
+                continue
+            ws = wb[nombre_hoja]
+            for col in range(1, ws.max_column + 1):
+                cell = ws.cell(row=1, column=col)
+                cell.fill = header_fill
+                cell.font = header_font
+                cell.alignment = Alignment(horizontal='center', vertical='center')
+            for col in range(1, ws.max_column + 1):
+                max_len = 0
+                for row in range(1, min(ws.max_row + 1, 50)):
+                    val = ws.cell(row=row, column=col).value
+                    if val:
+                        max_len = max(max_len, len(str(val)))
+                ws.column_dimensions[get_column_letter(col)].width = min(max_len + 3, 40)
+            for row in range(2, ws.max_row + 1):
+                if row % 2 == 0:
+                    for col in range(1, ws.max_column + 1):
+                        ws.cell(row=row, column=col).fill = light_fill
+
         for nombre, res in self.resultados.items():
             registros = res.get('registros')
             if registros is None or not isinstance(registros, pd.DataFrame) or registros.empty:
