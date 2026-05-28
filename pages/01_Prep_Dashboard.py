@@ -19,47 +19,34 @@ from config.colores import *
 from components.css_sihce import CSS_GLOBAL
 from components.kpi_card import render_kpi_row, render_kpi_doble
 
-st.set_page_config(page_title="PrEP - SIHCE", page_icon="💊",
-                   layout="wide", initial_sidebar_state="collapsed")
 
-st.markdown(CSS_GLOBAL, unsafe_allow_html=True)
+st.set_page_config(
+    page_title='Dashboard PrEP',
+    page_icon='💊',
+    layout='wide',
+)
 
-# --- HEADER ---
-st.markdown(f"""
-<div class="sihce-header">
-  <div>
-    <h1>💊 PrEP &mdash; Indicadores</h1>
-    <p class="sub">Sistema de Informaci&oacute;n de Indicadores &middot; DPVIH-MINSA</p>
-  </div>
-  <div class="info">{datetime.now().strftime('%d/%m/%Y %H:%M')}<br>
-    <a href="/" style="color:rgba(255,255,255,.6);font-size:10px">← Volver al menú</a>
-  </div>
-</div>
+st.markdown("""
+<style>
+    .main-header { background: linear-gradient(135deg, #1B3A5C, #2A5F8F); padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; }
+    .main-header h1 { color: #fff; margin: 0; font-size: 1.8rem; font-weight: 600; }
+    .main-header p { color: #B0D4F1; margin: 0.3rem 0 0 0; font-size: 0.9rem; }
+</style>
 """, unsafe_allow_html=True)
+
+st.markdown(f'<div class="main-header"><h1>💊 Dashboard PrEP</h1><p>Equipo de Informaci&oacute;n Estrat&eacute;gica &middot; v{VERSION}</p></div>', unsafe_allow_html=True)
 
 # --- BOTON VOLVER ---
 if st.button("← Volver al Menú Principal", type="secondary", use_container_width=False):
-    st.switch_page("app_principal.py")
+    st.switch_page("Menu_principal.py")
 
 # --- CARGA ---
 st.markdown("### 📂 Cargar indicadores PrEP")
-col_archivo, col_info = st.columns([3, 1])
+archivo = st.file_uploader(
+    "Selecciona el archivo Excel generado por generar_indicadores_prep.py",
+    type=['xlsx'], label_visibility="collapsed"
+)
 
-with col_archivo:
-    archivo = st.file_uploader(
-        "Selecciona el archivo Excel generado por generar_indicadores_prep.py",
-        type=['xlsx'], label_visibility="collapsed"
-    )
-
-with col_info:
-    st.markdown(f"""
-    <div style="background:#E8F0FE;border-radius:8px;padding:8px 10px;margin-top:24px">
-      <p style="font-size:10px;color:#003B6F;margin:0;line-height:1.4">
-        📌 Compatible con v2 y v3<br>
-        <small>Detección automática de columnas</small>
-      </p>
-    </div>
-    """, unsafe_allow_html=True)
 
 if archivo is None:
     st.info("⬆️ Sube un archivo Excel de indicadores PrEP para comenzar")
@@ -357,8 +344,7 @@ with st.spinner("Cargando indicadores..."):
     # Footer
     st.markdown(f"""
     <div class="sihce-footer">
-      Dashboard PrEP &middot; SIHCE v{VERSION} &middot; {datetime.now().strftime('%d/%m/%Y %H:%M')} &middot;
-      Archivo: {archivo.name} &middot; Padrón: {total_padron:,} &middot;
+      Dashboard PrEP &middot; EIE v{VERSION}
       I.2: {inicios_anio:,} &middot; I.3: {activos_anio:,}
     </div>
     """, unsafe_allow_html=True)

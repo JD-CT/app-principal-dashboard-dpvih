@@ -28,6 +28,6 @@ COLOR_SIN_TAMIZAJE = "#F39C12"    # Naranja: sin tamizaje
 COLOR_REACTIVO = "#8B0000"        # Rojo oscuro: reactivo sin vinculo
 
 # Configuracion general
-VERSION = "1.0"
+VERSION = "1.5"
 TITULO = "SIHCE - DPVIH MINSA"
 FOOTER_TEXTO = "Sistema de Información de Indicadores &middot; DPVIH-MINSA"

@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-# MENU PRINCIPAL - SIHCE DPVIH MINSA
+# MENU PRINCIPAL - EIE DPVIH MINSA
 # Creado: 2026-05-18 (actualizado: 2026-05-25)
 # Descripcion: Punto de entrada. Muestra los modulos disponibles como tarjetas.
 
 import streamlit as st
 import sys, os
-from datetime import datetime
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), 'streamlit_app'))
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -15,7 +14,7 @@ from config.colores import AZUL_PRINCIPAL, AZUL_SECUNDARIO, VERSION
 from components.css_sihce import CSS_GLOBAL
 
 st.set_page_config(
-    page_title="SIHCE - DPVIH MINSA",
+    page_title="EIE - DPVIH MINSA",
     page_icon="🏥",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -59,22 +58,19 @@ MODULOS = [
     },
 ]
 
-st.markdown(f"""
-<div class="sihce-header">
-  <div>
-    <h1>🏥 SIHCE — DPVIH MINSA</h1>
-    <p class="sub">Sistema de Información de Indicadores · Módulo de Monitoreo</p>
-  </div>
-  <div class="info">
-    v{VERSION}<br>
-    {datetime.now().strftime('%d/%m/%Y %H:%M')}
-  </div>
-</div>
+st.markdown("""
+<style>
+    .main-header { background: linear-gradient(135deg, #1B3A5C, #2A5F8F); padding: 1.5rem; border-radius: 12px; margin-bottom: 2rem; }
+    .main-header h1 { color: #fff; margin: 0; font-size: 1.8rem; font-weight: 600; }
+    .main-header p { color: #B0D4F1; margin: 0.3rem 0 0 0; font-size: 0.9rem; }
+</style>
 """, unsafe_allow_html=True)
+
+st.markdown(f'<div class="main-header"><h1>🏥 EIE — DPVIH MINSA</h1><p>Equipo de Información Estratégica · v{VERSION}</p></div>', unsafe_allow_html=True)
 
 st.markdown("""
 <p style="font-size:13px;color:#666;margin-bottom:14px">
-  Selecciona un módulo para acceder a sus indicadores y reportes:
+  Menú principal
 </p>
 """, unsafe_allow_html=True)
 
@@ -103,35 +99,9 @@ for i, mod in enumerate(MODULOS):
 
 # Footer
 st.markdown("---")
-col_info1, col_info2 = st.columns([1, 1])
-
-with col_info1:
-    st.markdown("""
-    <div style="background:#f8f9fa;border-radius:10px;padding:14px 16px">
-      <h4 style="color:#003B6F;font-size:13px;margin:0 0 8px 0">ℹ️ Acerca del Sistema</h4>
-      <p style="font-size:11px;color:#666;margin:0;line-height:1.5">
-        SIHCE (Sistema de Información de Indicadores) es una plataforma de monitoreo 
-        desarrollada para la Dirección de Prevención y Control de VIH/SIDA (DPVIH) 
-        del MINSA. Permite la visualización, análisis y revisión de indicadores 
-        de los programas PrEP, TAR y tamizajes ITS.
-      </p>
-    </div>
-    """, unsafe_allow_html=True)
-
-with col_info2:
-    st.markdown("""
-    <div style="background:#f8f9fa;border-radius:10px;padding:14px 16px">
-      <h4 style="color:#003B6F;font-size:13px;margin:0 0 8px 0">📁 Arquitectura</h4>
-      <p style="font-size:11px;color:#666;margin:0;line-height:1.5">
-        <strong>Módulos:</strong> PrEP · Revisión de Bases · CDD VIH-TAR<br>
-        <strong>Datos:</strong> Excel (upload)<br>
-        <strong>CDDs:</strong> VIH v3.1, ITS v2.0, PrEP v2.0
-      </p>
-    </div>
-    """, unsafe_allow_html=True)
 
 st.markdown(f"""
 <div class="sihce-footer">
-  SIHCE v{VERSION} &middot; DPVIH-MINSA &middot; {datetime.now().strftime('%d/%m/%Y %H:%M')}
+  EIE v{VERSION} &middot; DPVIH-MINSA
 </div>
 """, unsafe_allow_html=True)
