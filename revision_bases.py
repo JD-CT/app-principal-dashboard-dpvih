@@ -64,8 +64,7 @@ VERIFICACIONES = [
         'n': 'filtro_vih_dvi',
         't': 'Filtro: solo registros tamizaje VIH y DVI',
         'oculta': True,
-        'd': 'Filtro interno. El Excel ya viene filtrado desde la consulta SQL. '
-             'Se mantiene solo como referencia interna.',
+        'd': 'Filtro interno. No se muestra en resumen.',
         'c': ['tipo_tamizaje'],
         'resaltar': 'tipo_tamizaje',
         'p': 'baja',
@@ -74,9 +73,8 @@ VERIFICACIONES = [
     {
         'n': 'duplicados_tamizaje',
         't': 'Duplicados exactos (mismo paciente, mismo dia)',
-        'd': 'Detecta registros del mismo paciente (UID) con la misma fecha '
-             'de tamizaje, lo que si indica un posible duplicado real. '
-             'Atenciones en diferentes fechas son esperadas.',
+        'oculta': True,
+        'd': 'Detecta duplicados exactos. No se muestra en resumen.',
         'c': ['uid', 'fecha_tamizaje'],
         'resaltar': 'uid',
         'p': 'media',
