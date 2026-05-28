@@ -63,9 +63,9 @@ VERIFICACIONES = [
     {
         'n': 'filtro_vih_dvi',
         't': 'Filtro: solo registros tamizaje VIH y DVI',
-        'd': 'Muestra los registros cuyo tipo de tamizaje es VIH o DVI. '
-             'Se excluyen HEB (Hepatitis B), SIF (Sifilis), DSI y HEC (Hepatitis C). '
-             'Estos registros filtrados son la base para todas las verificaciones.',
+        'oculta': True,
+        'd': 'Filtro interno. El Excel ya viene filtrado desde la consulta SQL. '
+             'Se mantiene solo como referencia interna.',
         'c': ['tipo_tamizaje'],
         'resaltar': 'tipo_tamizaje',
         'p': 'baja',
@@ -73,11 +73,11 @@ VERIFICACIONES = [
     },
     {
         'n': 'duplicados_tamizaje',
-        't': 'Duplicados de paciente por UID repetido',
-        'd': 'Detecta registros duplicados donde un mismo paciente (UID) '
-             'aparece mas de una vez. Se debe conservar un solo registro '
-             'por paciente, eliminando las copias.',
-        'c': ['uid'],
+        't': 'Duplicados exactos (mismo paciente, mismo dia)',
+        'd': 'Detecta registros del mismo paciente (UID) con la misma fecha '
+             'de tamizaje, lo que si indica un posible duplicado real. '
+             'Atenciones en diferentes fechas son esperadas.',
+        'c': ['uid', 'fecha_tamizaje'],
         'resaltar': 'uid',
         'p': 'media',
         'cat': 'duplicados'
@@ -161,10 +161,13 @@ def _filtro_vih_dvi(df):
 
 
 def _duplicados_tamizaje(df):
-    """Detectar duplicados por UID"""
+    """Detectar duplicados exactos: mismo UID + misma fecha de tamizaje"""
     if 'uid' not in df.columns:
         return pd.DataFrame()
-    dup_mask = df.duplicated(subset=['uid'], keep=False)
+    key_cols = ['uid', 'fecha_tamizaje']
+    if 'fecha_tamizaje' not in df.columns:
+        key_cols = ['uid']
+    dup_mask = df.duplicated(subset=key_cols, keep=False)
     d = df[dup_mask].copy()
     return d if not d.empty else pd.DataFrame()
 

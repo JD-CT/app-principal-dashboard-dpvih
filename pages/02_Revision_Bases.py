@@ -41,9 +41,8 @@ with st.expander("📖 ¿Cómo funciona?", expanded=False):
     **Proceso automatizado** (reemplaza los 6 pasos manuales en Excel):
 
     1. **Subes** el Excel generado por la consulta **Trama Unificada v1.6** (ITS + TAR + PrEP)
-    2. El sistema ejecuta **9 verificaciones automáticas**:
-       - Filtra solo tamizajes VIH/Dual (descarta sífilis/hepatitis)
-       - Detecta duplicados por UID + fecha
+    2. El sistema ejecuta **verificaciones automáticas**:
+       - Detecta duplicados exactos (mismo paciente, misma fecha)
        - Identifica reactivos sin vinculación efectiva
        - Cruza vinculaciones contra padrones TAR y PrEP
        - Verifica fechas y consistencia de datos
@@ -80,7 +79,9 @@ if archivo:
             st.code(traceback.format_exc())
 
         if analizador is not None and hasattr(analizador, 'resumen') and analizador.resumen:
-            df_resumen = pd.DataFrame(analizador.resumen)
+            # Ocultar verificaciones marcadas como 'oculta' del resumen visual
+            resumen_visible = [r for r in analizador.resumen if not r.get('oculta', False)]
+            df_resumen = pd.DataFrame(resumen_visible)
 
             st.subheader('📋 Resumen de verificaciones')
 
@@ -112,16 +113,16 @@ if archivo:
                 return default
 
             v_con_problemas = [
-                r for r in analizador.resumen
+                r for r in resumen_visible
                 if _get_num(r.get('Cantidad', 0)) > 0
             ]
 
-            omitidas = sum(1 for r in analizador.resumen
+            omitidas = sum(1 for r in resumen_visible
                            if str(r.get('Estado', '')).upper() == 'OMITIDO')
-            con_error = sum(1 for r in analizador.resumen
+            con_error = sum(1 for r in resumen_visible
                             if str(r.get('Estado', '')).upper() == 'ERROR')
             total_problemas = sum(
-                _get_num(r.get('Cantidad', 0)) for r in analizador.resumen
+                _get_num(r.get('Cantidad', 0)) for r in resumen_visible
             )
 
             col1, col2, col3, col4 = st.columns(4)
