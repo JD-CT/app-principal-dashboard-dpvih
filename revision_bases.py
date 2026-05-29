@@ -504,7 +504,7 @@ class AnalizadorRevisionBases:
                     self.resumen.append({
                         'ID': id_visible, 'Verificacion': item['t'],
                         'Categoria': item['cat'], 'Registros': self.total_registros,
-                        'Cantidad': 'N/A', '%': 'N/A', 'Estado': 'OMITIDO',
+                        'Cantidad': None, '%': None, 'Estado': 'OMITIDO',
                         'Criterio': CRITERIOS.get(nombre, ''),
                         'Descripcion': item['d'], 'Detalle': detalle,
                     })
@@ -552,7 +552,7 @@ class AnalizadorRevisionBases:
                     self.resumen.append({
                         'ID': id_visible, 'Verificacion': item['t'],
                         'Categoria': item['cat'], 'Registros': self.total_registros,
-                        'Cantidad': 'ERROR', '%': 'N/A', 'Estado': 'ERROR',
+                        'Cantidad': None, '%': None, 'Estado': 'ERROR',
                         'Criterio': CRITERIOS.get(nombre, ''),
                         'Descripcion': item['d'], 'Detalle': str(e),
                     })
